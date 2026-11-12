@@ -143,6 +143,59 @@ git push -u origin main`;
         </pre>
       </div>
 
+      {/* Chrome Web Store & Automated GitHub Actions CI/CD */}
+      <div className="bg-gradient-to-br from-slate-900 via-sky-950/20 to-slate-900 border border-sky-500/30 rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs">
+              ⚡
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">
+                Automated Chrome Web Store Releases via GitHub Actions
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Push a Git tag to automatically package, upload, and update your Chrome Extension!
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold">
+            CI/CD Ready
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-lg">
+            <div className="font-bold text-white mb-1">1. Developer Account</div>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              Register on the <a href="https://chrome.google.com/webstore/devconsole" target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">Chrome Web Store Developer Console</a> ($5 one-time Google fee).
+            </p>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-lg">
+            <div className="font-bold text-white mb-1">2. First-Time Upload</div>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              Upload the downloaded <code className="text-sky-300">tradeguard-extension.zip</code> manually once to register your unique 32-character Extension ID.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-lg">
+            <div className="font-bold text-white mb-1">3. Automated Git Tags</div>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              Push a git tag (<code className="text-emerald-400 font-mono">git tag v1.1.0 && git push --tags</code>); GitHub Actions auto-publishes to the store!
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[#070b13] border border-slate-800/90 rounded-lg p-3 text-xs font-mono text-slate-300">
+          <div className="text-[11px] text-slate-500 mb-1.5 font-sans font-semibold">Workflow file active in repository:</div>
+          <div className="text-sky-300">.github/workflows/publish-extension.yml</div>
+          <div className="text-slate-500 text-[11px] mt-1 font-sans">
+            Detailed step-by-step credentials guide available in <code className="text-slate-300 font-mono">CHROME_STORE_PUBLISH_GUIDE.md</code>.
+          </div>
+        </div>
+      </div>
+
       {/* Manifest V3 Directory Structure */}
       <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-5">
         <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
@@ -155,15 +208,18 @@ git push -u origin main`;
 
         <pre className="p-3.5 bg-[#070b13] border border-slate-800 rounded-lg text-xs font-mono text-slate-300 leading-relaxed">
 {`tradeguard-mvp1/
-├── manifest.json       # Manifest V3 permissions & script registrations
-├── content.js          # Capture-phase click interceptor & Shadow DOM modal
-├── popup.html          # Toolbar UI for pre-trade discipline rules
-├── popup.js            # chrome.storage.local persistence logic
-├── README.md           # Documentation & instructions
+├── .github/workflows/
+│   └── publish-extension.yml  # Automated Chrome Web Store CI/CD workflow
+├── CHROME_STORE_PUBLISH_GUIDE.md # Web Store developer setup instructions
+├── manifest.json              # Manifest V3 permissions & script registrations
+├── content.js                 # Capture-phase click interceptor & Shadow DOM modal
+├── popup.html                 # Toolbar UI for pre-trade discipline rules
+├── popup.js                   # chrome.storage.local persistence logic
+├── README.md                  # Documentation & instructions
 └── icons/
-    ├── icon16.png      # Toolbar icon
-    ├── icon48.png      # Extensions manager icon
-    └── icon128.png     # Chrome Web Store install icon`}
+    ├── icon16.png             # Toolbar icon
+    ├── icon48.png             # Extensions manager icon
+    └── icon128.png            # Chrome Web Store install icon`}
         </pre>
       </div>
     </div>

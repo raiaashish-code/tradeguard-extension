@@ -1,0 +1,39 @@
+name: Publish TradeGuard to Chrome Web Store
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      auto_publish:
+        description: 'Auto publish to store (true/false)'
+        required: true
+        default: 'true'
+
+jobs:
+  build-and-publish:
+    name: Package and Upload to Chrome Web Store
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Extension ZIP Package
+        run: |
+          cd extension
+          zip -r ../tradeguard-extension.zip . -x "*.DS_Store"
+          cd ..
+          echo "Created tradeguard-extension.zip successfully"
+          ls -lh tradeguard-extension.zip
+
+      - name: Upload & Publish to Chrome Web Store
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        with:
+          file-name: 'tradeguard-extension.zip'
+          app-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          publish: ${{ github.event.inputs.auto_publish != 'false' }}
