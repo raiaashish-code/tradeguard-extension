@@ -1,10 +1,10 @@
 /**
- * TradeGuard MVP 1.0.6 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
+ * TradeGuard MVP 1.0.7 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
  * 
  * Bulletproof Stacking & Event Interception:
- * - Highest Stacking Level: z-index 2147483647 with !important attached to document.documentElement
- * - Suppresses background broker modals (Dhan, Zerodha, TradingView) from drawing in front
- * - Restores broker overlay styles seamlessly upon Confirm or Abort
+ * - Highest Stacking Level: z-index 2147483647 with !important attached as last child of document.body
+ * - Pierces custom element shadow DOMs (specifically Dhan's <ofl-mini-order>) to hide broker modals while active
+ * - Restores broker modal visibility and styles upon Confirm [Enter] or Abort [Esc]
  * - Pierces Web Components / Shadow DOM with composedPath()
  * - Strictly ignores clicks inside TradeGuard UI (#tradeguard-shadow-host)
  * - Keyboard rapid-check (1-9 toggle, Enter confirm, Esc abort)
@@ -25,7 +25,7 @@
   let suppressedBrokerElements = [];
 
   console.log(
-    "%c[TradeGuard 🛡️ v1.0.6] ACTIVE ON THIS TAB",
+    "%c[TradeGuard 🛡️ v1.0.7] ACTIVE ON THIS TAB",
     "background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px;"
   );
 
@@ -86,10 +86,10 @@
     `;
 
     pill.onclick = () => {
-      alert("TradeGuard v1.0.6 is ACTIVE.\n\nGuarding all Buy, Sell, and Position Exit/Square-Off orders on this tab.");
+      alert("TradeGuard v1.0.7 is ACTIVE.\n\nGuarding all Buy, Sell, and Position Exit/Square-Off orders on this tab.");
     };
 
-    (document.documentElement || document.body).appendChild(pill);
+    (document.body || document.documentElement).appendChild(pill);
   }
 
   if (document.readyState === "loading") {
@@ -242,15 +242,25 @@
 
     let symbolGuess = "";
 
-    // Check open modal title (like Dhan's modal header "TATASTEEL 23 NOV 195 CALL")
-    const modalContainer = targetBtn.closest
-      ? targetBtn.closest("[class*='modal'], [class*='dialog'], .order-window, [class*='ticket'], [class*='cdk-overlay']")
-      : null;
-
-    if (modalContainer) {
-      const headerEl = modalContainer.querySelector("h1, h2, h3, h4, [class*='title'], [class*='header'], [class*='symbol']");
+    // Check open modal title from target button shadow root or modal container
+    const root = typeof targetBtn.getRootNode === "function" ? targetBtn.getRootNode() : null;
+    if (root && root.querySelector) {
+      const headerEl = root.querySelector("h1, h2, h3, h4, [class*='title'], [class*='header'], [class*='symbol'], [class*='instrument']");
       if (headerEl && headerEl.textContent) {
         symbolGuess = headerEl.textContent.trim().replace(/\s+/g, " ");
+      }
+    }
+
+    if (!symbolGuess) {
+      const modalContainer = targetBtn.closest
+        ? targetBtn.closest("[class*='modal'], [class*='dialog'], .order-window, [class*='ticket'], [class*='cdk-overlay'], ofl-mini-order")
+        : null;
+
+      if (modalContainer) {
+        const headerEl = modalContainer.querySelector("h1, h2, h3, h4, [class*='title'], [class*='header'], [class*='symbol']");
+        if (headerEl && headerEl.textContent) {
+          symbolGuess = headerEl.textContent.trim().replace(/\s+/g, " ");
+        }
       }
     }
 
@@ -279,56 +289,58 @@
 
   /**
    * Temporarily suppresses broker overlay containers and dialogs so TradeGuard sits strictly on top.
+   * Pierces custom element Shadow DOMs (e.g. Dhan's <ofl-mini-order>).
    */
   function suppressBrokerOverlays(targetBtn) {
     suppressedBrokerElements = [];
     if (!targetBtn) return;
 
-    // 1. Walk up targetBtn ancestors to find any positioned / dialog / modal elements
-    let curr = targetBtn.parentElement;
-    while (curr && curr !== document.body && curr !== document.documentElement) {
+    function suppressEl(el) {
+      if (!el || el.id === "tradeguard-shadow-host" || el.id === "tradeguard-live-pill") return;
       try {
-        const comp = window.getComputedStyle(curr);
-        const z = parseInt(comp.zIndex, 10);
-        const isPositioned = comp.position === "fixed" || comp.position === "absolute" || comp.position === "relative";
-        const hasModalClass = /modal|dialog|ticket|order-window|overlay|drawer|cdk/i.test(
-          (typeof curr.className === "string" ? curr.className : "") + " " + (curr.id || "")
-        );
-
-        if ((!isNaN(z) && z > 0) || isPositioned || hasModalClass) {
-          suppressedBrokerElements.push({
-            el: curr,
-            zIndex: curr.style.getPropertyValue("z-index"),
-            zIndexPriority: curr.style.getPropertyPriority("z-index"),
-            pointerEvents: curr.style.getPropertyValue("pointer-events"),
-            pointerEventsPriority: curr.style.getPropertyPriority("pointer-events")
-          });
-          curr.style.setProperty("z-index", "1", "important");
-          curr.style.setProperty("pointer-events", "none", "important");
-        }
-      } catch (err) {
-        // Ignore cross-origin / detached node errors
-      }
-      curr = curr.parentElement;
+        suppressedBrokerElements.push({
+          el,
+          zIndex: el.style.getPropertyValue("z-index"),
+          zIndexPriority: el.style.getPropertyPriority("z-index"),
+          pointerEvents: el.style.getPropertyValue("pointer-events"),
+          pointerEventsPriority: el.style.getPropertyPriority("pointer-events"),
+          visibility: el.style.getPropertyValue("visibility"),
+          visibilityPriority: el.style.getPropertyPriority("visibility")
+        });
+        el.style.setProperty("z-index", "0", "important");
+        el.style.setProperty("pointer-events", "none", "important");
+        el.style.setProperty("visibility", "hidden", "important");
+      } catch (_) {}
     }
 
-    // 2. Also search for any active broker modal containers in document.body
+    // 1. Direct match for Dhan's custom element <ofl-mini-order>
+    try {
+      const dhanMiniOrders = document.querySelectorAll("ofl-mini-order, [class*='mini-order']");
+      for (const el of dhanMiniOrders) {
+        suppressEl(el);
+      }
+    } catch (_) {}
+
+    // 2. Walk up targetBtn ancestors, piercing Shadow DOM boundaries via getRootNode().host
+    let curr = targetBtn;
+    while (curr && curr !== document.body && curr !== document.documentElement) {
+      suppressEl(curr);
+      if (curr.getRootNode && curr.getRootNode() instanceof ShadowRoot) {
+        curr = curr.getRootNode().host;
+      } else if (curr.parentElement) {
+        curr = curr.parentElement;
+      } else {
+        break;
+      }
+    }
+
+    // 3. Also suppress any standard broker modal containers in document.body
     try {
       const candidates = document.querySelectorAll(
-        "[class*='cdk-overlay'], [class*='modal-dialog'], [class*='order-window'], [class*='order-ticket'], [class*='dialog-container']"
+        "[class*='cdk-overlay'], [class*='modal-dialog'], [class*='order-window'], [class*='order-ticket'], [class*='dialog-container'], .modal, .dialog"
       );
       for (const el of candidates) {
-        if (el && el.id !== "tradeguard-shadow-host") {
-          suppressedBrokerElements.push({
-            el,
-            zIndex: el.style.getPropertyValue("z-index"),
-            zIndexPriority: el.style.getPropertyPriority("z-index"),
-            pointerEvents: el.style.getPropertyValue("pointer-events"),
-            pointerEventsPriority: el.style.getPropertyPriority("pointer-events")
-          });
-          el.style.setProperty("z-index", "1", "important");
-          el.style.setProperty("pointer-events", "none", "important");
-        }
+        suppressEl(el);
       }
     } catch (_) {}
   }
@@ -350,6 +362,11 @@
               item.el.style.setProperty("pointer-events", item.pointerEvents, item.pointerEventsPriority || "");
             } else {
               item.el.style.removeProperty("pointer-events");
+            }
+            if (item.visibility) {
+              item.el.style.setProperty("visibility", item.visibility, item.visibilityPriority || "");
+            } else {
+              item.el.style.removeProperty("visibility");
             }
           }
         } catch (_) {}
@@ -656,8 +673,8 @@
       </div>
     `;
 
-    // Mount to document.documentElement (root) to supersede body stacking contexts
-    const mountTarget = document.documentElement || document.body;
+    // Mount to document.body as the last child to paint above all body layer trees
+    const mountTarget = document.body || document.documentElement;
     mountTarget.appendChild(host);
 
     const items = shadow.querySelectorAll(".item");
