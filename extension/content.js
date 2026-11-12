@@ -119,11 +119,132 @@
       <span>TradeGuard v1.1</span>
     `;
 
+    pill.title = "Click to view TradeGuard Feature Guide & Shortcuts";
     pill.onclick = () => {
-      alert("TradeGuard v1.1.0 is ACTIVE.\n\nGuarding all Buy, Sell, and Position Exit/Square-Off orders with pre-trade rules, 1% risk calculator, and anti-revenge cooldowns.");
+      openGuideModal();
     };
 
     (document.body || document.documentElement).appendChild(pill);
+  }
+
+  /**
+   * Displays the in-page Feature Guide & Keyboard Shortcuts Modal.
+   */
+  function openGuideModal() {
+    closeChecklistModal();
+
+    const host = document.createElement("div");
+    host.id = "tradeguard-shadow-host";
+    host.style.setProperty("all", "initial", "important");
+    host.style.setProperty("position", "fixed", "important");
+    host.style.setProperty("top", "0px", "important");
+    host.style.setProperty("left", "0px", "important");
+    host.style.setProperty("width", "100vw", "important");
+    host.style.setProperty("height", "100vh", "important");
+    host.style.setProperty("z-index", "2147483647", "important");
+    host.style.setProperty("display", "block", "important");
+
+    const shadow = host.attachShadow({ mode: "open" });
+    activeModalHost = host;
+
+    shadow.innerHTML = `
+      <style>
+        :host { all: initial !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483647 !important; }
+        .backdrop {
+          position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important;
+          background: rgba(2, 6, 23, 0.95) !important; backdrop-filter: blur(12px) !important;
+          display: flex !important; align-items: center !important; justify-content: center !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          color: #f8fafc !important;
+        }
+        .card {
+          width: 520px !important; max-width: 94vw !important; max-height: 90vh !important; overflow-y: auto !important;
+          background: #0f172a !important; border: 1px solid #38bdf8 !important; border-radius: 14px !important;
+          padding: 24px !important; box-shadow: 0 25px 60px -10px rgba(0,0,0,0.95), 0 0 25px rgba(56, 189, 248, 0.2) !important;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px; }
+        .title { font-size: 16px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+        .close-btn { background: transparent; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; padding: 2px 8px; border-radius: 4px; line-height: 1; }
+        .close-btn:hover { color: #f8fafc; background: #1e293b; }
+        .section { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+        .sec-title { font-size: 12.5px; font-weight: 700; color: #38bdf8; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+        .sec-desc { font-size: 11.5px; color: #cbd5e1; line-height: 1.5; }
+        .kbd { background: #0f172a; border: 1px solid #475569; color: #f8fafc; font-family: monospace; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .rules-preview { margin: 8px 0 0 0; padding-left: 18px; font-size: 11.5px; color: #94a3b8; }
+        .rules-preview li { margin-bottom: 4px; }
+        .btn-done { width: 100%; margin-top: 14px; padding: 11px; border-radius: 8px; font-weight: 700; font-size: 12px; background: #0284c7; color: white; border: none; cursor: pointer; transition: background 0.15s ease; }
+        .btn-done:hover { background: #0369a1; }
+      </style>
+      <div class="backdrop">
+        <div class="card">
+          <div class="header">
+            <div class="title">
+              <span>🛡️ TradeGuard Feature Guide</span>
+            </div>
+            <button type="button" class="close-btn" id="tgCloseGuide" title="Close [Esc]">×</button>
+          </div>
+
+          <div class="section">
+            <div class="sec-title">🎯 Pre-Trade Discipline Gatekeeper</div>
+            <div class="sec-desc">
+              When you click <strong>Instant Sell</strong>, <strong>Buy</strong>, or <strong>Square Off</strong> on Dhan, Kite, or TradingView, TradeGuard catches the click at browser capture level (<span class="kbd">useCapture: true</span>) before broker code receives it.
+              <ul class="rules-preview">
+                ${currentRules.map((r, i) => `<li><strong>${i + 1}.</strong> ${r}</li>`).join("")}
+              </ul>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sec-title">🧮 Live 1% Risk Sizing Calculator</div>
+            <div class="sec-desc">
+              Auto-reads order price and quantity, then calculates <span class="kbd">Risk = |Price - StopLoss| × Qty</span>. Compares this in real time against your Capital (<strong>₹${capital.toLocaleString()}</strong>) and warns if risk exceeds <strong>${maxRiskPercent}%</strong>.
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sec-title">🧘 Revenge-Trade Cooling-Off Breaker</div>
+            <div class="sec-desc">
+              Exiting a position triggers an automatic <strong>${cooldownMinutes}-minute</strong> cooling-off breathing guide. Entering new trades during this window shows a breather timer to stop emotional tilt.
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sec-title">⌨️ Keyboard Shortcuts</div>
+            <div class="sec-desc">
+              • <span class="kbd">1</span> – <span class="kbd">5</span>: Rapid toggle checklist items<br>
+              • <span class="kbd">Enter</span>: Submit verified order to broker<br>
+              • <span class="kbd">Esc</span>: Abort order safely (0 capital risked)
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sec-title">🔒 100% Client-Side Privacy</div>
+            <div class="sec-desc">
+              • <strong>Zero Broker API Keys:</strong> Never connects to external trading APIs or asks for broker passwords.<br>
+              • <strong>Zero External Servers:</strong> No analytics or tracking.<br>
+              • <strong>Zero Chart Lag:</strong> Sub-microsecond canvas bypass (<span class="kbd">&lt;0.002ms</span>) keeps chart panning at 60 FPS.
+            </div>
+          </div>
+
+          <button type="button" class="btn-done" id="tgDoneBtn">Got It, Back to Trading [Esc]</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(host);
+
+    const closeBtn = shadow.querySelector("#tgCloseGuide");
+    const doneBtn = shadow.querySelector("#tgDoneBtn");
+    if (closeBtn) closeBtn.onclick = () => closeChecklistModal();
+    if (doneBtn) doneBtn.onclick = () => closeChecklistModal();
+
+    activeKeyDownHandler = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeChecklistModal();
+      }
+    };
+    window.addEventListener("keydown", activeKeyDownHandler, true);
   }
 
   if (document.readyState === "loading") {

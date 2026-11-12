@@ -37,7 +37,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
   tradeJournal,
   onClearJournal
 }) => {
-  const [activeTab, setActiveTab] = useState<'rules' | 'risk' | 'journal'>('rules');
+  const [activeTab, setActiveTab] = useState<'rules' | 'risk' | 'journal' | 'guide'>('rules');
   const [newRuleText, setNewRuleText] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -105,7 +105,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Configure pre-trade discipline rules, live 1% position risk sizing, anti-revenge cooling-off timers, and review your local trade journal.
+            Configure pre-trade discipline rules, live 1% position risk sizing, anti-revenge cooling-off timers, read the full in-extension feature guide, and review your local trade journal.
           </p>
         </div>
 
@@ -123,10 +123,10 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
         {/* Browser Chrome Toolbar Simulation Bar */}
         <div className="w-[360px] max-w-full bg-[#1b2230] px-3 py-1.5 rounded-t-lg border-t border-x border-slate-700/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
           <span className="truncate">chrome-extension://tradeguard/popup.html</span>
-          <span className="text-sky-400 font-semibold">350px &times; Auto</span>
+          <span className="text-sky-400 font-semibold">360px &times; Auto</span>
         </div>
 
-        {/* The Exact Extension Popup Body (350px width) */}
+        {/* The Exact Extension Popup Body (360px width) */}
         <div className="w-[360px] max-w-full bg-[#0f172a] border border-slate-700/80 rounded-b-lg p-4 text-[#f8fafc] shadow-2xl space-y-3">
           {/* Header */}
           <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
@@ -153,7 +153,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('rules')}
-              className={`flex-1 py-1 px-2 rounded text-xs font-semibold transition-all ${
+              className={`flex-1 py-1 px-1.5 rounded text-[11px] font-semibold transition-all ${
                 activeTab === 'rules' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -162,20 +162,29 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('risk')}
-              className={`flex-1 py-1 px-2 rounded text-xs font-semibold transition-all ${
+              className={`flex-1 py-1 px-1.5 rounded text-[11px] font-semibold transition-all ${
                 activeTab === 'risk' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Risk & Cooldown
+              Risk
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('journal')}
-              className={`flex-1 py-1 px-2 rounded text-xs font-semibold transition-all ${
+              className={`flex-1 py-1 px-1.5 rounded text-[11px] font-semibold transition-all ${
                 activeTab === 'journal' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Trade Log ({tradeJournal.length})
+              Journal ({tradeJournal.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('guide')}
+              className={`flex-1 py-1 px-1.5 rounded text-[11px] font-semibold transition-all ${
+                activeTab === 'guide' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Guide ℹ️
             </button>
           </div>
 
@@ -361,6 +370,71 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
                 >
                   Clear Log
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: Guide & Help */}
+          {activeTab === 'guide' && (
+            <div className="space-y-2 text-xs max-h-[220px] overflow-y-auto pr-1">
+              <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
+                <div className="font-bold text-sky-400 mb-1 flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>How It Intercepts Orders</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Catches clicks on Dhan, Kite, and TradingView using browser capture (<code className="font-mono text-sky-300">useCapture: true</code>). The order is paused until your checklist rules are verified.
+                </p>
+              </div>
+
+              <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
+                <div className="font-bold text-sky-400 mb-1 flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Live 1% Risk Sizing</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Enter your intended Stop-Loss. TradeGuard calculates <code className="font-mono text-sky-300">Risk = |Price - SL| * Qty</code> and compares it to your Capital to display a live Safe/Danger badge.
+                </p>
+              </div>
+
+              <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
+                <div className="font-bold text-emerald-400 mb-1 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Anti-Revenge Cooldown</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Exiting a position triggers a configurable cooling-off timer (e.g. 3 min) with a breathing guide to prevent emotional tilt re-entries.
+                </p>
+              </div>
+
+              <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
+                <div className="font-bold text-purple-400 mb-1 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Strategy &amp; Mindset Tags</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Tag setups (<code className="font-mono text-purple-300">Breakout</code>, <code className="font-mono text-purple-300">Pullback</code>) and mindset (<code className="font-mono text-purple-300">Calm 🧘</code>, <code className="font-mono text-purple-300">FOMO 🚀</code>) before submitting.
+                </p>
+              </div>
+
+              <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
+                <div className="font-bold text-sky-400 mb-1 flex items-center gap-1.5">
+                  <span>⌨️ Keyboard Shortcuts</span>
+                </div>
+                <div className="text-slate-300 text-[11px] space-y-1">
+                  <div>• <code className="font-mono text-slate-200 bg-slate-900 px-1 py-0.5 rounded border border-slate-700">1 - 5</code>: Toggle checklist rules</div>
+                  <div>• <code className="font-mono text-slate-200 bg-slate-900 px-1 py-0.5 rounded border border-slate-700">Enter</code>: Submit verified order</div>
+                  <div>• <code className="font-mono text-slate-200 bg-slate-900 px-1 py-0.5 rounded border border-slate-700">Esc</code>: Abort order (0 risk) / dismiss cooldown</div>
+                </div>
+              </div>
+
+              <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
+                <div className="font-bold text-sky-400 mb-1 flex items-center gap-1.5">
+                  <span>🔒 Privacy &amp; Zero Lag</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Zero broker API keys or passwords. Zero tracking servers. Sub-microsecond canvas bypass (<code className="font-mono text-sky-300">&lt;0.002ms</code>) ensures charts run at 60 FPS.
+                </p>
               </div>
             </div>
           )}

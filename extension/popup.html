@@ -243,6 +243,39 @@
       border-radius: 3px;
     }
 
+    /* Guide Tab */
+    .guide-section {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 9px 11px;
+      margin-bottom: 7px;
+    }
+    .guide-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .guide-body {
+      font-size: 11px;
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+    .kbd-chip {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      font-family: monospace;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
     .btn-secondary {
       background: #1e293b;
       color: #cbd5e1;
@@ -284,16 +317,19 @@
       </svg>
       <h2>TradeGuard v1.1</h2>
     </div>
-    <label class="toggle-label" id="toggleLabel">
-      <input type="checkbox" id="guardEnabled" checked> Active
-    </label>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <label class="toggle-label" id="toggleLabel">
+        <input type="checkbox" id="guardEnabled" checked> Active
+      </label>
+    </div>
   </div>
 
   <!-- Navigation Tabs -->
   <div class="tabs">
     <button type="button" class="tab-btn active" data-tab="tabRules">Rules</button>
-    <button type="button" class="tab-btn" data-tab="tabRisk">Risk & Cooldown</button>
-    <button type="button" class="tab-btn" data-tab="tabJournal">Trade Log</button>
+    <button type="button" class="tab-btn" data-tab="tabRisk">Risk</button>
+    <button type="button" class="tab-btn" data-tab="tabJournal">Journal</button>
+    <button type="button" class="tab-btn" data-tab="tabGuide">Guide ℹ️</button>
   </div>
 
   <!-- TAB 1: Rules -->
@@ -355,6 +391,55 @@
     <div class="journal-actions">
       <button type="button" class="btn-secondary" id="exportCsvBtn" style="flex:1;">⬇ Export CSV</button>
       <button type="button" class="btn-secondary" id="clearJournalBtn" style="color:#f87171;">Clear Log</button>
+    </div>
+  </div>
+
+  <!-- TAB 4: Feature Guide & Help -->
+  <div class="tab-content" id="tabGuide">
+    <div style="max-height: 250px; overflow-y: auto; padding-right: 2px;">
+      <div class="guide-section">
+        <div class="guide-title">🛡️ How It Intercepts Orders</div>
+        <div class="guide-body">
+          TradeGuard monitors clicks on Dhan, Kite, and TradingView at the browser's capture level (<span class="kbd-chip">useCapture: true</span>). When you click <em>Buy</em>, <em>Sell</em>, or <em>Square Off</em>, the order is paused immediately before broker handlers execute.
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <div class="guide-title">🧮 Live 1% Risk Sizing</div>
+        <div class="guide-body">
+          Inside the gatekeeper modal, enter your intended Stop-Loss. TradeGuard calculates <span class="kbd-chip">Risk = |Price - SL| × Qty</span> and displays a live <strong>Safe (&lt; 1%)</strong> or <strong>Excessive Risk</strong> alert based on your Capital.
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <div class="guide-title">🧘 Revenge-Trade Cooldown</div>
+        <div class="guide-body">
+          Exiting or squaring off a position starts an anti-revenge breathing window (default: 3 mins). If you try to jump right back in, TradeGuard displays a guided breathing screen to enforce emotional discipline.
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <div class="guide-title">🏷️ Strategy &amp; Mindset Tags</div>
+        <div class="guide-body">
+          Select your setup (<em>Breakout</em>, <em>Pullback</em>, <em>VWAP</em>, <em>Scalp</em>) and emotional state (<em>Calm 🧘</em>, <em>FOMO 🚀</em>) in 1 click before confirming.
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <div class="guide-title">⌨️ Keyboard Shortcuts</div>
+        <div class="guide-body">
+          • <span class="kbd-chip">1</span> to <span class="kbd-chip">5</span>: Toggle checklist rules<br>
+          • <span class="kbd-chip">Enter</span>: Submit verified order<br>
+          • <span class="kbd-chip">Esc</span>: Abort order safely (0 risk) / dismiss cooldown
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <div class="guide-title">🔒 100% Client-Side Privacy</div>
+        <div class="guide-body">
+          Zero broker API keys or passwords. Zero tracking servers. Everything lives locally in <span class="kbd-chip">chrome.storage.local</span>. Chart canvas clicks bypass checks in &lt;0.002ms for 60 FPS performance.
+        </div>
+      </div>
     </div>
   </div>
 
