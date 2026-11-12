@@ -4,6 +4,7 @@ import { TradingViewTerminal } from './components/TradingViewTerminal';
 import { KiteTerminal } from './components/KiteTerminal';
 import { DhanTerminal } from './components/DhanTerminal';
 import { GatekeeperModal } from './components/GatekeeperModal';
+import { CooldownModal } from './components/CooldownModal';
 import { PopupSimulator } from './components/PopupSimulator';
 import { EventInspector } from './components/EventInspector';
 import { CodeExplorer } from './components/CodeExplorer';
@@ -11,9 +12,10 @@ import { GitHubGuide } from './components/GitHubGuide';
 import {
   BrokerTerminalType,
   InterceptedOrderContext,
-  InterceptionLogEvent
+  InterceptionLogEvent,
+  TradeJournalEntry
 } from './types';
-import { Shield, Sparkles, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
+import { Shield, Sparkles, AlertCircle, CheckCircle, ExternalLink, Clock } from 'lucide-react';
 
 const INITIAL_RULES = [
   "Is my Stop-Loss strictly defined and entered?",
@@ -43,6 +45,63 @@ export default function App() {
     }
   });
 
+  // MVP 1.1 Extended Features State
+  const [capital, setCapital] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('tradeguard_capital');
+      return saved ? Number(saved) : 200000;
+    } catch {
+      return 200000;
+    }
+  });
+
+  const [maxRiskPercent, setMaxRiskPercent] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('tradeguard_maxrisk');
+      return saved ? Number(saved) : 1.0;
+    } catch {
+      return 1.0;
+    }
+  });
+
+  const [cooldownMinutes, setCooldownMinutes] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('tradeguard_cooldown');
+      return saved !== null ? Number(saved) : 3;
+    } catch {
+      return 3;
+    }
+  });
+
+  const [maxTradesPerDay, setMaxTradesPerDay] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('tradeguard_maxtrades');
+      return saved ? Number(saved) : 5;
+    } catch {
+      return 5;
+    }
+  });
+
+  const [cooldownUntil, setCooldownUntil] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('tradeguard_cooldown_until');
+      return saved ? Number(saved) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  const [isCooldownModalOpen, setIsCooldownModalOpen] = useState<boolean>(false);
+
+  const [tradeJournal, setTradeJournal] = useState<TradeJournalEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('tradeguard_journal');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Active Interception Modal State
   const [activeOrder, setActiveOrder] = useState<InterceptedOrderContext | null>(null);
   const [lastExecutedOrder, setLastExecutedOrder] = useState<InterceptedOrderContext | null>(null);
@@ -60,6 +119,30 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('tradeguard_enabled', isGuardEnabled ? 'true' : 'false');
   }, [isGuardEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('tradeguard_capital', String(capital));
+  }, [capital]);
+
+  useEffect(() => {
+    localStorage.setItem('tradeguard_maxrisk', String(maxRiskPercent));
+  }, [maxRiskPercent]);
+
+  useEffect(() => {
+    localStorage.setItem('tradeguard_cooldown', String(cooldownMinutes));
+  }, [cooldownMinutes]);
+
+  useEffect(() => {
+    localStorage.setItem('tradeguard_maxtrades', String(maxTradesPerDay));
+  }, [maxTradesPerDay]);
+
+  useEffect(() => {
+    localStorage.setItem('tradeguard_cooldown_until', String(cooldownUntil));
+  }, [cooldownUntil]);
+
+  useEffect(() => {
+    localStorage.setItem('tradeguard_journal', JSON.stringify(tradeJournal));
+  }, [tradeJournal]);
 
   const addLogEvent = (
     stage: InterceptionLogEvent['stage'],
@@ -104,6 +187,18 @@ export default function App() {
       return;
     }
 
+    // Check Cooling-Off Breaker: if cooling-off timer is currently active
+    if (cooldownMinutes > 0 && cooldownUntil > Date.now()) {
+      addLogEvent(
+        'DOM_FREEZE',
+        `Revenge-Trade Cooling-Off BREAKER ACTIVE! Order blocked to prevent emotional tilt re-entry.`,
+        { cooldownRemainingSec: Math.ceil((cooldownUntil - Date.now()) / 1000) },
+        'warn'
+      );
+      setIsCooldownModalOpen(true);
+      return;
+    }
+
     // Step 1: Capture Phase Intercept
     addLogEvent(
       'CAPTURE_INTERCEPT',
@@ -120,10 +215,10 @@ export default function App() {
       'warn'
     );
 
-    // Step 3: Screen Context Reader
+    // Step 3: Screen Context Reader & Live Risk Calculator
     addLogEvent(
       'CONTEXT_SCRAPED',
-      `Scraped active order context without broker API: Side=${context.side}, Symbol=${context.symbol}, Qty=${context.quantity}`,
+      `Scraped active order context without broker API: Side=${context.side}, Symbol=${context.symbol}, Qty=${context.quantity}, Price=₹${context.price || 100}`,
       { ...context },
       'info'
     );
@@ -134,25 +229,60 @@ export default function App() {
 
     addLogEvent(
       'MODAL_MOUNT',
-      `Injected isolated Shadow DOM dark-mode overlay (#tradeguard-shadow-host) with ${rules.length} verification rules`,
-      { rulesCount: rules.length },
+      `Injected isolated Shadow DOM modal with 1% Risk Calculator, Strategy Tags, and ${rules.length} verification rules`,
+      { rulesCount: rules.length, capital, maxRiskPercent },
       'info'
     );
   };
 
-  // Safe Replay Mechanism (FR-06)
-  const handleConfirmOrder = () => {
+  // Safe Replay Mechanism (FR-06) with Auto Journal Recording & Cooldown
+  const handleConfirmOrder = (extraDetails?: { stopLoss: number; strategy: string; mindset: string }) => {
     if (!activeOrder) return;
+
+    const currentOrder = activeOrder;
+    const entryPrice = currentOrder.price || 100;
+    const sl = extraDetails?.stopLoss || (currentOrder.side === 'SELL' ? entryPrice * 1.02 : entryPrice * 0.98);
+    const riskPerShare = Math.abs(entryPrice - sl);
+    const totalRisk = Math.round(riskPerShare * currentOrder.quantity);
+
+    // Auto-Record to Local Trade Journal
+    const newEntry: TradeJournalEntry = {
+      id: 'tg_' + Date.now().toString(36),
+      timestamp: Date.now(),
+      timeString: new Date().toLocaleTimeString(),
+      broker: currentOrder.broker,
+      symbol: currentOrder.symbol,
+      side: currentOrder.side,
+      price: entryPrice,
+      quantity: currentOrder.quantity,
+      stopLoss: Number(sl.toFixed(2)),
+      riskAmount: totalRisk,
+      strategyTag: extraDetails?.strategy || 'Breakout',
+      mindsetTag: extraDetails?.mindset || 'Calm'
+    };
+
+    setTradeJournal((prev) => [newEntry, ...prev].slice(0, 100));
 
     addLogEvent(
       'PASS_THROUGH_REPLAY',
-      `All checklist items satisfied! Setting isBypassing = true and triggering targetButton.click() programmatic replay`,
-      { symbol: activeOrder.symbol, side: activeOrder.side },
+      `All checklist items satisfied! Strategy: [${newEntry.strategyTag}], Mindset: [${newEntry.mindsetTag}], Risk: ₹${totalRisk}. Logged to journal.`,
+      { ...newEntry },
       'success'
     );
 
+    // If exiting a position (SELL) and cooldown is enabled, trigger cooling-off timer
+    if (currentOrder.side === 'SELL' && cooldownMinutes > 0) {
+      const until = Date.now() + cooldownMinutes * 60 * 1000;
+      setCooldownUntil(until);
+      addLogEvent(
+        'ORDER_EXECUTED',
+        `Position exit recorded. Revenge-Trade Cooldown activated for ${cooldownMinutes} minutes.`,
+        { cooldownMinutes, until: new Date(until).toLocaleTimeString() },
+        'info'
+      );
+    }
+
     isBypassingRef.current = true;
-    const currentOrder = activeOrder;
     setActiveOrder(null);
 
     // Replay click cleanly
@@ -194,7 +324,16 @@ export default function App() {
   const handleResetDefaults = () => {
     setRules(INITIAL_RULES);
     setIsGuardEnabled(true);
-    addLogEvent('KEYBOARD_CHECK', 'Reset checklist rules to default initial set', { rules: INITIAL_RULES });
+    setCapital(200000);
+    setMaxRiskPercent(1.0);
+    setCooldownMinutes(3);
+    setMaxTradesPerDay(5);
+    addLogEvent('KEYBOARD_CHECK', 'Reset settings and checklist rules to defaults', { rules: INITIAL_RULES });
+  };
+
+  const handleClearJournal = () => {
+    setTradeJournal([]);
+    addLogEvent('KEYBOARD_CHECK', 'Cleared local trade journal log', {});
   };
 
   return (
@@ -212,6 +351,33 @@ export default function App() {
         {/* TAB 1: TRADING SANDBOX */}
         {activeTab === 'sandbox' && (
           <div className="space-y-6">
+            {/* Active Cooldown Banner (if active) */}
+            {cooldownUntil > Date.now() && (
+              <div className="bg-sky-950/50 border border-sky-500/40 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs animate-pulse">
+                <div className="flex items-center gap-2.5 text-sky-300">
+                  <span className="text-base">🧘</span>
+                  <div>
+                    <span className="font-bold text-white">Revenge-Trade Cooling-Off Breaker Active:</span> Orders are protected until{' '}
+                    <span className="font-mono font-bold text-sky-200">{new Date(cooldownUntil).toLocaleTimeString()}</span> to prevent emotional re-entry.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsCooldownModalOpen(true)}
+                    className="px-3 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    Open Breather Screen
+                  </button>
+                  <button
+                    onClick={() => setCooldownUntil(0)}
+                    className="px-2.5 py-1 text-slate-400 hover:text-slate-200 text-xs transition-colors"
+                  >
+                    Clear Cooldown
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Context & Platform Switcher Strip */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800/80 rounded-xl p-4">
               <div>
@@ -296,19 +462,19 @@ export default function App() {
 
               <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4">
                 <div className="font-bold text-sky-400 mb-1 flex items-center gap-2">
-                  <span>2. Press Keys 1, 2, 3</span>
+                  <span>2. Position Sizing &amp; Strategy</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed">
-                  Active day traders don't need to reach for the mouse. Press number keys <code className="text-slate-300 font-mono">1</code>, <code className="text-slate-300 font-mono">2</code>, and <code className="text-slate-300 font-mono">3</code> on your physical keyboard to rapidly toggle the verification items.
+                  Notice the automatic 1% Stop-Loss risk sizing calculation, 1-click strategy tags (<code className="text-slate-300 font-mono">Breakout</code>, <code className="text-slate-300 font-mono">Pullback</code>), and mindset verification.
                 </p>
               </div>
 
               <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4">
                 <div className="font-bold text-sky-400 mb-1 flex items-center gap-2">
-                  <span>3. Hit Enter to Execute</span>
+                  <span>3. Anti-Revenge Cooldown</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed">
-                  Once all checklist rules are satisfied, the button unlocks. Press <code className="text-slate-300 font-mono">Enter</code> to safely replay the click, or press <code className="text-slate-300 font-mono">Esc</code> to abort without risking capital.
+                  Exiting a position triggers a configurable 3-minute cooling-off breaker with a guided breathing circle, preventing overtrading and emotional tilt.
                 </p>
               </div>
             </div>
@@ -323,6 +489,16 @@ export default function App() {
             isGuardEnabled={isGuardEnabled}
             setIsGuardEnabled={setIsGuardEnabled}
             onResetDefaults={handleResetDefaults}
+            capital={capital}
+            setCapital={setCapital}
+            maxRiskPercent={maxRiskPercent}
+            setMaxRiskPercent={setMaxRiskPercent}
+            cooldownMinutes={cooldownMinutes}
+            setCooldownMinutes={setCooldownMinutes}
+            maxTradesPerDay={maxTradesPerDay}
+            setMaxTradesPerDay={setMaxTradesPerDay}
+            tradeJournal={tradeJournal}
+            onClearJournal={handleClearJournal}
           />
         )}
 
@@ -346,15 +522,25 @@ export default function App() {
         <GatekeeperModal
           orderContext={activeOrder}
           rules={rules}
+          capital={capital}
+          maxRiskPercent={maxRiskPercent}
           onConfirm={handleConfirmOrder}
           onAbort={handleAbortOrder}
           onRuleToggled={handleRuleToggled}
         />
       )}
 
+      {/* Revenge-Trade Cooldown Modal */}
+      {isCooldownModalOpen && cooldownUntil > Date.now() && (
+        <CooldownModal
+          untilTimestamp={cooldownUntil}
+          onDismiss={() => setIsCooldownModalOpen(false)}
+        />
+      )}
+
       {/* Clean Footer */}
       <footer className="mt-auto border-t border-slate-800/80 py-4 px-6 text-xs text-slate-500 text-center flex flex-col sm:flex-row items-center justify-between gap-3 max-w-7xl mx-auto w-full">
-        <span>TradeGuard MVP 1.0 &middot; Zero-API Pre-Trade Checklist Extension</span>
+        <span>TradeGuard MVP 1.1 &middot; Zero-API Pre-Trade Discipline &amp; Risk Sizing Extension</span>
         <div className="flex items-center gap-4 text-slate-400">
           <span>Chrome Manifest V3</span>
           <span>&middot;</span>

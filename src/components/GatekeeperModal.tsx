@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Shield, X, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Shield, X, AlertTriangle, ArrowRight, Calculator, Tag, Sparkles } from 'lucide-react';
 import { InterceptedOrderContext } from '../types';
 
 interface GatekeeperModalProps {
   orderContext: InterceptedOrderContext;
   rules: string[];
-  onConfirm: () => void;
+  capital?: number;
+  maxRiskPercent?: number;
+  onConfirm: (extraDetails?: { stopLoss: number; strategy: string; mindset: string }) => void;
   onAbort: () => void;
   onRuleToggled?: (ruleIndex: number, checked: boolean) => void;
 }
@@ -13,6 +15,8 @@ interface GatekeeperModalProps {
 export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
   orderContext,
   rules,
+  capital = 200000,
+  maxRiskPercent = 1.0,
   onConfirm,
   onAbort,
   onRuleToggled
@@ -21,8 +25,20 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
     new Array(rules.length).fill(false)
   );
 
-  const allChecked = checkedState.length > 0 && checkedState.every(Boolean);
   const isSell = orderContext.side === 'SELL';
+  const entryPrice = orderContext.price || 100;
+  const defaultSl = isSell ? entryPrice * 1.02 : entryPrice * 0.98;
+
+  const [stopLoss, setStopLoss] = useState<number>(() => parseFloat(defaultSl.toFixed(2)));
+  const [strategyTag, setStrategyTag] = useState<string>('Breakout');
+  const [mindsetTag, setMindsetTag] = useState<string>('Calm');
+
+  const riskPerShare = Math.abs(entryPrice - stopLoss);
+  const totalRisk = Math.round(riskPerShare * orderContext.quantity);
+  const riskPercent = capital > 0 ? parseFloat(((totalRisk / capital) * 100).toFixed(2)) : 0;
+  const isRiskSafe = riskPercent <= maxRiskPercent;
+
+  const allChecked = checkedState.length > 0 && checkedState.every(Boolean);
 
   const toggleRule = useCallback(
     (index: number) => {
@@ -39,10 +55,21 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
     [rules.length, onRuleToggled]
   );
 
+  const handleConfirmOrder = useCallback(() => {
+    if (!allChecked) return;
+    onConfirm({
+      stopLoss,
+      strategy: strategyTag,
+      mindset: mindsetTag
+    });
+  }, [allChecked, onConfirm, stopLoss, strategyTag, mindsetTag]);
+
   // Keyboard Rapid-Check listener (FR-04)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Keys 1-9
+      // Do not capture if focused on input
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+
       const keyNum = parseInt(e.key, 10);
       if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= rules.length) {
         e.preventDefault();
@@ -51,17 +78,15 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
         return;
       }
 
-      // Enter key to confirm once unlocked
       if (e.key === 'Enter') {
         if (allChecked) {
           e.preventDefault();
           e.stopPropagation();
-          onConfirm();
+          handleConfirmOrder();
         }
         return;
       }
 
-      // Escape key to dismiss
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
@@ -71,22 +96,22 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [allChecked, rules.length, toggleRule, onConfirm, onAbort]);
+  }, [allChecked, rules.length, toggleRule, handleConfirmOrder, onAbort]);
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#020617]/85 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-[#020617]/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onAbort();
       }}
     >
       <div
-        className="w-full max-w-[440px] bg-[#0f172a] border border-slate-700/80 rounded-xl p-5 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-[480px] bg-[#0f172a] border border-slate-700/80 rounded-xl p-5 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150 my-auto"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
               <Shield className="w-4 h-4" />
@@ -119,20 +144,83 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
           </div>
         </div>
 
-        {/* Order Context Banner */}
-        <div className="mb-4 text-xs text-slate-300 leading-relaxed bg-slate-900/60 border border-slate-800/80 rounded-lg p-2.5">
-          <div className="flex items-center justify-between font-mono text-[11px] mb-1">
-            <span className="text-slate-400">INTERCEPTED TARGET:</span>
+        {/* Live Risk & Position Sizing Card */}
+        <div className="mb-3 text-xs bg-slate-900/80 border border-slate-800 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between font-mono text-[11px]">
+            <span className="text-slate-400">TARGET:</span>
             <span className="text-white font-bold">{orderContext.symbol}</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-            <span>Qty: {orderContext.quantity} &middot; Type: {orderContext.orderType}</span>
-            <span>Ref Price: ${orderContext.price.toFixed(2)}</span>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-300 font-mono">
+            <span>Qty: <strong className="text-white">{orderContext.quantity}</strong></span>
+            <span>Price: <strong className="text-white">₹{orderContext.price.toFixed(2)}</strong></span>
           </div>
-          <p className="mt-1.5 text-slate-300 text-[11px] flex items-center gap-1.5 border-t border-slate-800/60 pt-1.5">
-            <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
-            <span>Complete mandatory rational verification to unlock broker execution.</span>
-          </p>
+
+          {/* Sizing & Stop Loss Row */}
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5">
+              <Calculator className="w-3.5 h-3.5 text-sky-400" />
+              <span className="text-[11px] text-slate-400 font-medium">Stop-Loss:</span>
+              <input
+                type="number"
+                step="0.05"
+                value={stopLoss}
+                onChange={(e) => setStopLoss(parseFloat(e.target.value) || entryPrice)}
+                className="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono font-bold text-white text-right outline-none focus:border-sky-400"
+              />
+            </div>
+
+            <div
+              className={`px-2 py-1 rounded text-[11px] font-mono font-bold border flex items-center gap-1 ${
+                isRiskSafe
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-400 border-rose-500/40 animate-pulse'
+              }`}
+            >
+              <span>{isRiskSafe ? '✓' : '⚠️'}</span>
+              <span>₹{totalRisk} Risk ({riskPercent}%)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Strategy & Mindset Tagging */}
+        <div className="mb-3 flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+            <span className="text-[10px] text-slate-500 uppercase font-mono mr-1">Setup:</span>
+            {['Breakout', 'Pullback', 'VWAP', 'Scalp'].map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setStrategyTag(tag)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
+                  strategyTag === tag
+                    ? 'bg-sky-500 text-slate-950 font-bold'
+                    : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1">
+            {['Calm', 'FOMO'].map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMindsetTag(m)}
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                  mindsetTag === m
+                    ? m === 'Calm'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-rose-600 text-white'
+                    : 'bg-slate-800 text-slate-500 border border-slate-700'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Checklist */}
@@ -185,7 +273,7 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
           <button
             type="button"
             disabled={!allChecked}
-            onClick={onConfirm}
+            onClick={handleConfirmOrder}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
               allChecked
                 ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-lg shadow-sky-500/20 cursor-pointer'

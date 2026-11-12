@@ -24,3 +24,26 @@ export interface InterceptionLogEvent {
   details?: Record<string, any>;
   level: 'info' | 'success' | 'warn' | 'error';
 }
+
+export interface TradeJournalEntry {
+  id: string;
+  timestamp: number;
+  timeString: string;
+  symbol: string;
+  side: 'BUY' | 'SELL' | 'ORDER';
+  price: number;
+  quantity: number;
+  stopLoss?: number;
+  riskAmount?: number;
+  riskPercent?: number;
+  strategyTag?: string;
+  mindsetTag?: string;
+  broker: string;
+}
+
+export interface DisciplineSettings {
+  accountCapital: number;
+  maxRiskPercent: number;
+  cooldownMinutes: number;
+  maxTradesPerDay: number;
+}
