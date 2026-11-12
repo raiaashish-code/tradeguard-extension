@@ -1,0 +1,6 @@
+{
+  "name": "TradeGuard - Pre-Trade Checklist Extension & Simulator",
+  "description": "Zero-API pre-trade discipline gatekeeper for trading terminals (TradingView, Kite, Dhan). Intercepts order clicks via Shadow DOM checklist to eliminate emotional impulse trades.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

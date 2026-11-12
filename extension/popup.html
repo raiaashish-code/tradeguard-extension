@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeGuard Rules</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 14px;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      user-select: none;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .shield-icon {
+      width: 16px;
+      height: 16px;
+      fill: #38bdf8;
+    }
+    h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: -0.01em;
+    }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+    .toggle-label input[type="checkbox"] {
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+    .toggle-label.active {
+      color: #38bdf8;
+    }
+    .row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 7px 9px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #f8fafc;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    input[type="text"]:focus {
+      border-color: #38bdf8;
+    }
+    input[type="text"]::placeholder {
+      color: #64748b;
+    }
+    button.add-btn {
+      padding: 7px 12px;
+      border: none;
+      border-radius: 4px;
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      white-space: nowrap;
+    }
+    button.add-btn:hover {
+      background: #0369a1;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      padding: 8px 10px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      border: 1px solid #334155;
+      font-size: 12px;
+      line-height: 1.35;
+      gap: 8px;
+    }
+    .rule-text {
+      flex: 1;
+      word-break: break-word;
+    }
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: #f87171;
+      padding: 2px 6px;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+      border-radius: 2px;
+      opacity: 0.8;
+      transition: opacity 0.15s ease, background 0.15s ease;
+    }
+    .del-btn:hover {
+      opacity: 1;
+      background: rgba(239, 68, 68, 0.15);
+    }
+    .status {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 10px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .empty-state {
+      padding: 16px 8px;
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+      background: rgba(30, 41, 59, 0.4);
+      border-radius: 4px;
+      border: 1px dashed #334155;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title-group">
+      <svg class="shield-icon" viewBox="0 0 24 24">
+        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+      </svg>
+      <h2>TradeGuard MVP1</h2>
+    </div>
+    <label class="toggle-label" id="toggleLabel">
+      <input type="checkbox" id="guardEnabled" checked> Active
+    </label>
+  </div>
+
+  <div class="row">
+    <input type="text" id="newRuleInput" placeholder="Add pre-trade rule (max 5)..." maxlength="90">
+    <button class="add-btn" id="addRuleBtn">Add</button>
+  </div>
+
+  <div id="emptyNotice" class="empty-state" style="display: none;">
+    No checklist rules active. Add a rule above to protect your trades.
+  </div>
+
+  <ul id="rulesList"></ul>
+
+  <div class="status">100% Local Storage • Zero API Keys Required</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
