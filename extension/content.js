@@ -818,16 +818,15 @@
     }
   }
 
-  /**
-   * Synchronous capture-phase interceptor
-   */
   function handleCaptureClick(e) {
-    if (isBypassing) {
-      return; // Safe replay in progress
+    if (isBypassing || !isEnabled || !e) {
+      return; // Safe replay in progress or disabled
     }
 
-    if (!isEnabled) {
-      return; // Disabled by user
+    // Zero-overhead early bailout for chart canvas & drawing tools (maintains 60 FPS)
+    const targetTag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
+    if (targetTag === "canvas") {
+      return;
     }
 
     const orderBtn = findOrderSubmitButton(e);
