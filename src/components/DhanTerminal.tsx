@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Zap, ShieldCheck } from 'lucide-react';
+import { Zap, ShieldCheck, X } from 'lucide-react';
 import { InterceptedOrderContext } from '../types';
 
 interface DhanTerminalProps {
@@ -11,18 +11,33 @@ export const DhanTerminal: React.FC<DhanTerminalProps> = ({
   onInterceptClick,
   lastExecutedOrder
 }) => {
-  const [symbol] = useState('BANKNIFTY 47800 CE');
-  const [price] = useState(342.6);
-  const [lotSize] = useState(15);
-  const [lots, setLots] = useState(2);
-
+  const [showOrderModal, setShowOrderModal] = useState(true);
+  const [orderTab, setOrderTab] = useState<'Market' | 'Limit' | 'Super' | 'Trail'>('Limit');
+  const [symbol] = useState('TATASTEEL 23 NOV 195 CALL');
+  const [ltp] = useState(2.02);
+  const [limitPrice, setLimitPrice] = useState(2.36);
+  const [lots, setLots] = useState(1);
+  const lotSize = 2750;
   const totalQty = lots * lotSize;
 
-  const handleDhanSubmit = (side: 'BUY' | 'SELL', e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleDhanInstantSell = (e: React.MouseEvent<HTMLButtonElement>) => {
     const context: InterceptedOrderContext = {
-      side,
+      side: 'SELL',
       symbol,
-      price,
+      price: limitPrice,
+      quantity: totalQty,
+      orderType: orderTab === 'Market' ? 'MARKET' : 'LIMIT',
+      timestamp: Date.now(),
+      broker: 'dhan'
+    };
+    onInterceptClick(context, e.currentTarget);
+  };
+
+  const handlePositionRowClose = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const context: InterceptedOrderContext = {
+      side: 'SELL',
+      symbol,
+      price: ltp,
       quantity: totalQty,
       orderType: 'MARKET',
       timestamp: Date.now(),
@@ -32,99 +47,188 @@ export const DhanTerminal: React.FC<DhanTerminalProps> = ({
   };
 
   return (
-    <div className="bg-[#121824] text-slate-200 rounded-xl border border-[#20293a] overflow-hidden shadow-2xl flex flex-col font-sans">
+    <div className="bg-[#121824] text-slate-200 rounded-xl border border-[#20293a] overflow-hidden shadow-2xl flex flex-col font-sans relative">
       {/* Dhan Header */}
       <div className="bg-[#0b1019] border-b border-[#20293a] px-4 py-2.5 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[11px]">
-            D
+            ध
           </div>
-          <span className="font-bold text-white font-mono">DHAN WEB</span>
-          <span className="text-[11px] text-slate-400">Fast Execution Terminal</span>
+          <span className="font-bold text-white font-mono">web.dhan.co/index/positions</span>
+          <span className="text-[11px] text-slate-400">Dhan Web Terminal</span>
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
-          <Zap className="w-3.5 h-3.5" />
-          <span>Instant Scalper Mode Active</span>
+        <div className="flex items-center gap-3 text-xs font-mono">
+          <span className="text-slate-400">Nifty 50: <span className="text-emerald-400">25,272.90 (+0.07%)</span></span>
+          <button
+            onClick={() => setShowOrderModal(true)}
+            className="px-2.5 py-1 bg-sky-600/30 text-sky-400 border border-sky-500/40 rounded hover:bg-sky-600/40 text-[11px] font-bold"
+          >
+            Open Order Modal
+          </button>
         </div>
       </div>
 
-      <div className="p-5 flex flex-col justify-between min-h-[380px]">
+      <div className="p-4 space-y-4">
+        {/* Positions Table (from user's screenshot) */}
         <div>
-          {/* Active Contract Info */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#20293a] mb-4">
-            <div>
-              <div className="text-base font-bold text-white font-mono">{symbol}</div>
-              <div className="text-xs text-slate-400">Options Weekly Expiry &middot; Strike: 47,800</div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white font-mono uppercase">
+                Today's Positions
+              </span>
+              <span className="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-mono">
+                Open: 1
+              </span>
             </div>
-            <div className="text-right font-mono">
-              <div className="text-xl font-bold text-emerald-400">₹{price.toFixed(2)}</div>
-              <div className="text-[11px] text-slate-400">LTP &middot; +8.4% today</div>
-            </div>
+            <span className="text-xs font-mono text-rose-400 font-bold">
+              Total P&L: -₹440.00
+            </span>
           </div>
 
-          {/* Quick Lot Selectors */}
-          <div className="space-y-3 mb-6">
-            <div className="text-xs text-slate-400 flex justify-between font-mono">
-              <span>LOTS SELECTION (1 Lot = {lotSize} Qty)</span>
-              <span className="text-white font-bold">Total: {totalQty} Qty (₹{(price * totalQty).toFixed(2)})</span>
-            </div>
-
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 4, 8].map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLots(l)}
-                  className={`py-2 rounded font-mono text-xs font-semibold transition-all ${
-                    lots === l
-                      ? 'bg-sky-500 text-slate-950 font-bold border border-sky-400'
-                      : 'bg-[#1b2333] text-slate-300 hover:bg-[#232d42] border border-[#20293a]'
-                  }`}
-                >
-                  {l} {l === 1 ? 'Lot' : 'Lots'} ({l * lotSize})
-                </button>
-              ))}
-            </div>
+          <div className="overflow-x-auto border border-[#20293a] rounded-lg">
+            <table className="w-full text-xs font-mono">
+              <thead>
+                <tr className="bg-[#0b1019] text-slate-400 text-left border-b border-[#20293a]">
+                  <th className="py-2 px-3">INSTRUMENT</th>
+                  <th className="py-2 px-3">AVG PRICE</th>
+                  <th className="py-2 px-3">LTP</th>
+                  <th className="py-2 px-3">P&L</th>
+                  <th className="py-2 px-3">% CHG</th>
+                  <th className="py-2 px-3 text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-[#20293a] hover:bg-[#1a2334] transition-colors">
+                  <td className="py-2.5 px-3">
+                    <div className="font-bold text-white">{symbol}</div>
+                    <div className="text-[10px] text-slate-500">NSE &middot; 2750 Qty</div>
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-300">2.18</td>
+                  <td className="py-2.5 px-3 text-white">2.02</td>
+                  <td className="py-2.5 px-3 text-rose-400 font-bold">-440.00</td>
+                  <td className="py-2.5 px-3 text-rose-400">-7.34%</td>
+                  <td className="py-2.5 px-3 text-right">
+                    <button
+                      type="button"
+                      data-name="close-position"
+                      onClick={handlePositionRowClose}
+                      className="button-close px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-xs font-bold"
+                      title="Close position"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-          {/* Scalper Protection Notice */}
-          <div className="p-3 bg-sky-950/20 border border-sky-500/30 rounded-lg text-xs text-sky-200 mb-6 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold text-sky-300">Fast-Execution Safeguard:</span> Dhan instant scalping buttons are high-frequency targets for emotional revenge trading. TradeGuard catches the click before the websocket sends the payload.
-            </div>
-          </div>
-
-          {/* Last Executed Notification */}
-          {lastExecutedOrder && lastExecutedOrder.broker === 'dhan' && (
-            <div className="mb-4 bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 p-2.5 rounded text-xs animate-in fade-in">
-              <span className="font-bold text-emerald-400">Dhan Order Dispatched:</span>{' '}
-              {lastExecutedOrder.side} {lastExecutedOrder.quantity} units of {lastExecutedOrder.symbol} @ ₹{lastExecutedOrder.price}
-            </div>
-          )}
         </div>
 
-        {/* Real DOM Target Instant Order Buttons */}
-        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#20293a]">
-          <button
-            type="button"
-            data-name="submit-order"
-            onClick={(e) => handleDhanSubmit('BUY', e)}
-            className="order-buy-button py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition-all shadow-lg active:scale-95 cursor-pointer flex flex-col items-center justify-center"
-          >
-            <span className="text-[11px] uppercase tracking-wider">INSTANT BUY MARKET</span>
-            <span className="font-mono text-sm">₹{price.toFixed(2)}</span>
-          </button>
+        {/* Dhan Order Modal (Exact recreation of user's screenshot) */}
+        {showOrderModal && (
+          <div className="bg-[#ffffff] text-slate-900 rounded-xl p-5 shadow-2xl border border-slate-300 max-w-lg mx-auto relative animate-in fade-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200">
+              <div>
+                <div className="text-sm font-bold text-slate-900 font-sans tracking-tight">
+                  {symbol}
+                </div>
+                <div className="text-xs text-rose-600 font-mono mt-0.5">
+                  <span className="font-bold text-sm text-slate-900 mr-1.5">{ltp.toFixed(2)}</span>
+                  -0.02 (-0.98%) &middot; Live
+                </div>
+              </div>
 
-          <button
-            type="button"
-            data-name="submit-order"
-            onClick={(e) => handleDhanSubmit('SELL', e)}
-            className="order-sell-button py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition-all shadow-lg active:scale-95 cursor-pointer flex flex-col items-center justify-center"
-          >
-            <span className="text-[11px] uppercase tracking-wider">INSTANT SELL MARKET</span>
-            <span className="font-mono text-sm">₹{price.toFixed(2)}</span>
-          </button>
-        </div>
+              <button
+                onClick={() => setShowOrderModal(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Trading vs Normal Toggle */}
+            <div className="flex items-center gap-2 my-3">
+              <button className="px-3 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded-md">
+                Trading
+              </button>
+              <button className="px-3 py-1 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 rounded-md">
+                Normal
+              </button>
+            </div>
+
+            {/* Tabs: Market, Limit, Super, Trail */}
+            <div className="flex items-center justify-between border-b border-slate-200 text-xs font-medium text-slate-600 mb-4">
+              <div className="flex gap-4">
+                {(['Market', 'Limit', 'Super', 'Trail'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setOrderTab(t)}
+                    className={`pb-2 border-b-2 font-semibold transition-all ${
+                      orderTab === t ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-slate-400">VWAP</span>
+            </div>
+
+            {/* Inputs: Lot, Qty, Price */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="border border-slate-300 rounded-lg p-2 bg-slate-50">
+                <div className="flex justify-between text-[11px] text-slate-500">
+                  <span>Lot</span>
+                  <span>Qty: {totalQty}</span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={lots}
+                  onChange={(e) => setLots(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-transparent font-bold text-slate-900 text-sm outline-none mt-1 font-mono"
+                />
+              </div>
+
+              <div className="border border-slate-300 rounded-lg p-2 bg-slate-50">
+                <div className="text-[11px] text-slate-500">Price</div>
+                <input
+                  type="number"
+                  step="0.05"
+                  value={limitPrice}
+                  onChange={(e) => setLimitPrice(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-transparent font-bold text-slate-900 text-sm outline-none mt-1 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* The Instant Sell Button matching screenshot */}
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={handleDhanInstantSell}
+                className="instant-sell bg-[#ea5353] hover:bg-[#d64545] text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+              >
+                <span>⚡</span>
+                <span>Instant Sell</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500 text-right mt-1.5">
+              Exact replica of Dhan's <code className="text-rose-600 font-mono font-bold">⚡ Instant Sell</code> button
+            </p>
+          </div>
+        )}
+
+        {/* Execution toast */}
+        {lastExecutedOrder && lastExecutedOrder.broker === 'dhan' && (
+          <div className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 p-2.5 rounded text-xs animate-in fade-in flex items-center justify-between">
+            <span>
+              <strong>Dhan Order Replayed:</strong> {lastExecutedOrder.side} {lastExecutedOrder.quantity}x {lastExecutedOrder.symbol} @ ₹{lastExecutedOrder.price}
+            </span>
+            <span className="text-[10px] font-mono text-emerald-400">VERIFIED</span>
+          </div>
+        )}
       </div>
     </div>
   );
