@@ -62,6 +62,19 @@ export const TradingViewTerminal: React.FC<TradingViewTerminalProps> = ({
     onInterceptClick(context, e.currentTarget);
   };
 
+  const handleClosePosition = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const context: InterceptedOrderContext = {
+      side: 'SELL',
+      symbol: activeTicker.symbol,
+      price: currentPrice,
+      quantity: 50,
+      orderType: 'MARKET',
+      timestamp: Date.now(),
+      broker: 'tradingview'
+    };
+    onInterceptClick(context, e.currentTarget);
+  };
+
   return (
     <div className="bg-[#131722] text-[#d1d4dc] rounded-xl border border-[#2a2e39] overflow-hidden shadow-2xl flex flex-col">
       {/* TradingView Top Toolbar */}
@@ -352,6 +365,63 @@ export const TradingViewTerminal: React.FC<TradingViewTerminalProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* TradingView Bottom Panel: Open Positions */}
+      <div className="border-t border-[#2a2e39] bg-[#171b26] p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+              Open Positions (1)
+            </span>
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
+              1 Active Long
+            </span>
+          </div>
+          <span className="text-[11px] text-[#787b86]">
+            Test position exit interception:
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs font-mono">
+            <thead>
+              <tr className="text-[#787b86] border-b border-[#2a2e39] text-left">
+                <th className="py-1.5 px-2">SYMBOL</th>
+                <th className="py-1.5 px-2">SIDE</th>
+                <th className="py-1.5 px-2">QTY</th>
+                <th className="py-1.5 px-2">ENTRY</th>
+                <th className="py-1.5 px-2">LTP</th>
+                <th className="py-1.5 px-2">P&L</th>
+                <th className="py-1.5 px-2 text-right">ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-[#2a2e39]/50 hover:bg-[#1e222d] transition-colors">
+                <td className="py-2 px-2 text-white font-bold">{activeTicker.symbol}</td>
+                <td className="py-2 px-2 text-emerald-400 font-bold">LONG</td>
+                <td className="py-2 px-2 text-white">50</td>
+                <td className="py-2 px-2 text-slate-300">${(activeTicker.basePrice * 0.99).toFixed(2)}</td>
+                <td className="py-2 px-2 text-white">${currentPrice.toFixed(2)}</td>
+                <td className="py-2 px-2 text-emerald-400 font-bold">
+                  +${((currentPrice - activeTicker.basePrice * 0.99) * 50).toFixed(2)}
+                </td>
+                <td className="py-2 px-2 text-right">
+                  <button
+                    type="button"
+                    data-name="close-position"
+                    onClick={(e) => handleClosePosition(e)}
+                    className="button-close px-3 py-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded text-xs font-semibold transition-all active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
+                    title="Close position at market"
+                  >
+                    <span>Close Position (Sell)</span>
+                    <span className="text-rose-400 font-bold">✕</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

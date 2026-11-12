@@ -232,6 +232,64 @@ export const KiteTerminal: React.FC<KiteTerminalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Kite Positions Table */}
+      <div className="border-t border-[#2e2e2e] bg-[#141414] p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+            Positions (1)
+          </span>
+          <span className="text-[11px] text-neutral-400">
+            Click "Exit Position" below to test open position interception:
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs font-mono">
+            <thead>
+              <tr className="text-neutral-500 border-b border-[#2e2e2e] text-left">
+                <th className="py-1.5 px-2">PRODUCT</th>
+                <th className="py-1.5 px-2">INSTRUMENT</th>
+                <th className="py-1.5 px-2">QTY.</th>
+                <th className="py-1.5 px-2">AVG.</th>
+                <th className="py-1.5 px-2">LTP</th>
+                <th className="py-1.5 px-2">P&L</th>
+                <th className="py-1.5 px-2 text-right">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-[#262626] hover:bg-[#1f1f1f] transition-colors">
+                <td className="py-2 px-2 text-neutral-300">MIS</td>
+                <td className="py-2 px-2 text-white font-bold">RELIANCE (NSE)</td>
+                <td className="py-2 px-2 text-emerald-400 font-bold">+25</td>
+                <td className="py-2 px-2 text-neutral-300">₹2,950.00</td>
+                <td className="py-2 px-2 text-white">₹2,984.50</td>
+                <td className="py-2 px-2 text-emerald-400 font-bold">+₹862.50 (+1.17%)</td>
+                <td className="py-2 px-2 text-right">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const context: InterceptedOrderContext = {
+                        side: 'SELL',
+                        symbol: 'RELIANCE (NSE)',
+                        price: 2984.5,
+                        quantity: 25,
+                        orderType: 'MARKET',
+                        timestamp: Date.now(),
+                        broker: 'kite'
+                      };
+                      onInterceptClick(context, e.currentTarget);
+                    }}
+                    className="actions exit btn btn-orange px-3 py-1 bg-[#ff5722] hover:bg-[#e64a19] text-white text-xs font-bold rounded transition-all active:scale-95 cursor-pointer"
+                  >
+                    Exit Position
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
