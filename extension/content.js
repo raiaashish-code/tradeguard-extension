@@ -1,13 +1,13 @@
 /**
- * TradeGuard MVP 1.0.5 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
+ * TradeGuard MVP 1.0.6 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
  * 
- * Bulletproof Event & Target Resolution:
- * - Strictly ignores all clicks inside TradeGuard's own UI (#tradeguard-shadow-host)
- * - Restricts order matching ONLY to actual buttons (avoids page-level false positives)
- * - Ignores navigation tabs (Open, Closed, Today, Positions, In Loss)
- * - Directly matches Dhan's btnSubmit, .btn-sell, .btn-buy, "⚡ Instant Sell"
- * - Immediate Abort [Esc] and backdrop dismiss
- * - Keyboard rapid-check (1-9 toggle, Enter to confirm when verified)
+ * Bulletproof Stacking & Event Interception:
+ * - Highest Stacking Level: z-index 2147483647 with !important attached to document.documentElement
+ * - Suppresses background broker modals (Dhan, Zerodha, TradingView) from drawing in front
+ * - Restores broker overlay styles seamlessly upon Confirm or Abort
+ * - Pierces Web Components / Shadow DOM with composedPath()
+ * - Strictly ignores clicks inside TradeGuard UI (#tradeguard-shadow-host)
+ * - Keyboard rapid-check (1-9 toggle, Enter confirm, Esc abort)
  */
 
 (function () {
@@ -22,9 +22,10 @@
   let isBypassing = false;
   let activeModalHost = null;
   let activeKeyDownHandler = null;
+  let suppressedBrokerElements = [];
 
   console.log(
-    "%c[TradeGuard 🛡️ v1.0.5] ACTIVE ON THIS TAB",
+    "%c[TradeGuard 🛡️ v1.0.6] ACTIVE ON THIS TAB",
     "background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px;"
   );
 
@@ -85,10 +86,10 @@
     `;
 
     pill.onclick = () => {
-      alert("TradeGuard v1.0.5 is ACTIVE.\n\nGuarding all Buy, Sell, and Position Exit/Square-Off orders on this tab.");
+      alert("TradeGuard v1.0.6 is ACTIVE.\n\nGuarding all Buy, Sell, and Position Exit/Square-Off orders on this tab.");
     };
 
-    (document.body || document.documentElement).appendChild(pill);
+    (document.documentElement || document.body).appendChild(pill);
   }
 
   if (document.readyState === "loading") {
@@ -99,7 +100,7 @@
 
   /**
    * Identifies if a click is strictly targeted at an order submit or position exit button.
-   * Completely ignores page containers, table rows, and TradeGuard's own UI.
+   * Pierces shadow roots and ignores clicks within TradeGuard's own UI.
    */
   function findOrderSubmitButton(e) {
     if (!e) return null;
@@ -112,7 +113,7 @@
       }
     }
     if (activeModalHost) {
-      return null; // Modal is already open, ignore background clicks
+      return null; // Modal is already open
     }
 
     // RULE 2: Locate the specific button node along the composed path
@@ -165,7 +166,7 @@
       .trim()
       .toLowerCase();
 
-    // Ignore navigation tabs and filters (e.g., Open, In Loss, Closed, Today, Normal, Trading)
+    // Ignore navigation tabs and filters
     if (
       /^(open|closed|in loss|today|all|normal|trading|market|limit|super|trail|vwap|more options|set p l exit|analyse)$/i.test(
         cleanText
@@ -243,7 +244,7 @@
 
     // Check open modal title (like Dhan's modal header "TATASTEEL 23 NOV 195 CALL")
     const modalContainer = targetBtn.closest
-      ? targetBtn.closest("[class*='modal'], [class*='dialog'], .order-window, [class*='ticket']")
+      ? targetBtn.closest("[class*='modal'], [class*='dialog'], .order-window, [class*='ticket'], [class*='cdk-overlay']")
       : null;
 
     if (modalContainer) {
@@ -277,23 +278,112 @@
   }
 
   /**
-   * Displays the isolated Shadow DOM checklist modal overlay.
+   * Temporarily suppresses broker overlay containers and dialogs so TradeGuard sits strictly on top.
+   */
+  function suppressBrokerOverlays(targetBtn) {
+    suppressedBrokerElements = [];
+    if (!targetBtn) return;
+
+    // 1. Walk up targetBtn ancestors to find any positioned / dialog / modal elements
+    let curr = targetBtn.parentElement;
+    while (curr && curr !== document.body && curr !== document.documentElement) {
+      try {
+        const comp = window.getComputedStyle(curr);
+        const z = parseInt(comp.zIndex, 10);
+        const isPositioned = comp.position === "fixed" || comp.position === "absolute" || comp.position === "relative";
+        const hasModalClass = /modal|dialog|ticket|order-window|overlay|drawer|cdk/i.test(
+          (typeof curr.className === "string" ? curr.className : "") + " " + (curr.id || "")
+        );
+
+        if ((!isNaN(z) && z > 0) || isPositioned || hasModalClass) {
+          suppressedBrokerElements.push({
+            el: curr,
+            zIndex: curr.style.getPropertyValue("z-index"),
+            zIndexPriority: curr.style.getPropertyPriority("z-index"),
+            pointerEvents: curr.style.getPropertyValue("pointer-events"),
+            pointerEventsPriority: curr.style.getPropertyPriority("pointer-events")
+          });
+          curr.style.setProperty("z-index", "1", "important");
+          curr.style.setProperty("pointer-events", "none", "important");
+        }
+      } catch (err) {
+        // Ignore cross-origin / detached node errors
+      }
+      curr = curr.parentElement;
+    }
+
+    // 2. Also search for any active broker modal containers in document.body
+    try {
+      const candidates = document.querySelectorAll(
+        "[class*='cdk-overlay'], [class*='modal-dialog'], [class*='order-window'], [class*='order-ticket'], [class*='dialog-container']"
+      );
+      for (const el of candidates) {
+        if (el && el.id !== "tradeguard-shadow-host") {
+          suppressedBrokerElements.push({
+            el,
+            zIndex: el.style.getPropertyValue("z-index"),
+            zIndexPriority: el.style.getPropertyPriority("z-index"),
+            pointerEvents: el.style.getPropertyValue("pointer-events"),
+            pointerEventsPriority: el.style.getPropertyPriority("pointer-events")
+          });
+          el.style.setProperty("z-index", "1", "important");
+          el.style.setProperty("pointer-events", "none", "important");
+        }
+      }
+    } catch (_) {}
+  }
+
+  /**
+   * Restores broker elements to their exact original inline styles and priorities.
+   */
+  function restoreBrokerOverlays() {
+    if (Array.isArray(suppressedBrokerElements)) {
+      for (const item of suppressedBrokerElements) {
+        try {
+          if (item && item.el && item.el.style) {
+            if (item.zIndex) {
+              item.el.style.setProperty("z-index", item.zIndex, item.zIndexPriority || "");
+            } else {
+              item.el.style.removeProperty("z-index");
+            }
+            if (item.pointerEvents) {
+              item.el.style.setProperty("pointer-events", item.pointerEvents, item.pointerEventsPriority || "");
+            } else {
+              item.el.style.removeProperty("pointer-events");
+            }
+          }
+        } catch (_) {}
+      }
+    }
+    suppressedBrokerElements = [];
+  }
+
+  /**
+   * Displays the isolated Shadow DOM checklist modal overlay with absolute top stacking context.
    */
   function openChecklistModal(targetBtn, rules) {
     closeChecklistModal();
 
+    // Suppress broker modal ancestors from drawing over TradeGuard
+    suppressBrokerOverlays(targetBtn);
+
     const context = extractScreenContext(targetBtn);
     const host = document.createElement("div");
     host.id = "tradeguard-shadow-host";
-    host.style.all = "initial";
-    host.style.position = "fixed";
-    host.style.top = "0";
-    host.style.left = "0";
-    host.style.width = "100vw";
-    host.style.height = "100vh";
-    host.style.zIndex = "2147483647";
-    host.style.display = "block";
-    host.style.pointerEvents = "auto";
+    
+    // Explicit !important styles on host to ensure it sits above all page stacking contexts
+    host.style.setProperty("all", "initial", "important");
+    host.style.setProperty("position", "fixed", "important");
+    host.style.setProperty("top", "0px", "important");
+    host.style.setProperty("left", "0px", "important");
+    host.style.setProperty("right", "0px", "important");
+    host.style.setProperty("bottom", "0px", "important");
+    host.style.setProperty("width", "100vw", "important");
+    host.style.setProperty("height", "100vh", "important");
+    host.style.setProperty("z-index", "2147483647", "important");
+    host.style.setProperty("display", "block", "important");
+    host.style.setProperty("pointer-events", "auto", "important");
+    host.style.setProperty("isolation", "isolate", "important");
 
     const shadow = host.attachShadow({ mode: "open" });
     activeModalHost = host;
@@ -305,20 +395,38 @@
 
     shadow.innerHTML = `
       <style>
+        :host {
+          all: initial !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 2147483647 !important;
+          display: block !important;
+          pointer-events: auto !important;
+          isolation: isolate !important;
+        }
         * { box-sizing: border-box; }
         .backdrop {
-          position: fixed;
-          inset: 0;
-          width: 100vw;
-          height: 100vh;
-          background: rgba(2, 6, 23, 0.92);
-          backdrop-filter: blur(8px);
-          z-index: 2147483647;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          animation: tgFadeIn 0.15s ease-out;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          background: rgba(2, 6, 23, 0.95) !important;
+          backdrop-filter: blur(12px) !important;
+          -webkit-backdrop-filter: blur(12px) !important;
+          z-index: 2147483647 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          animation: tgFadeIn 0.15s ease-out !important;
         }
         @keyframes tgFadeIn {
           from { opacity: 0; }
@@ -329,37 +437,39 @@
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
         .card {
-          width: 450px;
-          max-width: 92vw;
-          background: #0f172a;
-          border: 1px solid #334155;
-          border-radius: 12px;
-          padding: 22px;
-          color: #f8fafc;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
-          animation: tgCardPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative !important;
+          z-index: 2147483647 !important;
+          width: 480px !important;
+          max-width: 92vw !important;
+          background: #0f172a !important;
+          border: 1px solid #334155 !important;
+          border-radius: 12px !important;
+          padding: 24px !important;
+          color: #f8fafc !important;
+          box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+          animation: tgCardPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
         .top {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
           border-bottom: 1px solid #1e293b;
-          padding-bottom: 12px;
+          padding-bottom: 14px;
         }
         .top-left {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
         }
         .logo-icon {
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           fill: #38bdf8;
         }
         h3 {
           margin: 0;
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 700;
           color: #38bdf8;
           letter-spacing: -0.01em;
@@ -375,10 +485,10 @@
           letter-spacing: 0.05em;
         }
         p.sub {
-          margin: 0 0 14px 0;
-          font-size: 12.5px;
+          margin: 0 0 16px 0;
+          font-size: 13px;
           color: #94a3b8;
-          line-height: 1.4;
+          line-height: 1.45;
         }
         .symbol-tag {
           font-weight: 700;
@@ -387,17 +497,17 @@
         .checklist {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          margin-bottom: 18px;
+          gap: 9px;
+          margin-bottom: 20px;
         }
         .item {
           display: flex;
           align-items: flex-start;
-          gap: 10px;
+          gap: 12px;
           background: #1e293b;
           border: 1px solid #334155;
-          padding: 10px 12px;
-          border-radius: 6px;
+          padding: 11px 14px;
+          border-radius: 8px;
           cursor: pointer;
           transition: border-color 0.15s ease, background 0.15s ease;
           user-select: none;
@@ -408,18 +518,18 @@
         }
         .item.checked {
           border-color: #0284c7;
-          background: rgba(2, 132, 199, 0.12);
+          background: rgba(2, 132, 199, 0.15);
         }
         .item input[type="checkbox"] {
           margin-top: 2px;
           accent-color: #38bdf8;
           cursor: pointer;
-          width: 16px;
-          height: 16px;
+          width: 17px;
+          height: 17px;
         }
         .item-text {
           flex: 1;
-          font-size: 12.5px;
+          font-size: 13px;
           line-height: 1.4;
           color: #e2e8f0;
         }
@@ -430,13 +540,13 @@
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           background: #334155;
           color: #94a3b8;
           font-size: 11px;
           font-weight: 700;
-          border-radius: 3px;
+          border-radius: 4px;
           flex-shrink: 0;
         }
         .item.checked .key-hint {
@@ -449,9 +559,9 @@
         }
         button {
           font-family: inherit;
-          padding: 10px 14px;
-          border-radius: 6px;
-          font-size: 12.5px;
+          padding: 11px 16px;
+          border-radius: 8px;
+          font-size: 13px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.15s ease;
@@ -485,8 +595,8 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-top: 12px;
-          padding-top: 10px;
+          margin-top: 14px;
+          padding-top: 12px;
           border-top: 1px solid #1e293b;
           font-size: 11px;
           color: #64748b;
@@ -494,8 +604,8 @@
         .kbd-pill {
           background: #1e293b;
           border: 1px solid #334155;
-          border-radius: 3px;
-          padding: 1px 5px;
+          border-radius: 4px;
+          padding: 1px 6px;
           color: #94a3b8;
           font-family: monospace;
           font-size: 10.5px;
@@ -546,7 +656,9 @@
       </div>
     `;
 
-    (document.body || document.documentElement).appendChild(host);
+    // Mount to document.documentElement (root) to supersede body stacking contexts
+    const mountTarget = document.documentElement || document.body;
+    mountTarget.appendChild(host);
 
     const items = shadow.querySelectorAll(".item");
     const checkboxes = shadow.querySelectorAll("input[type='checkbox']");
@@ -632,7 +744,6 @@
           e.stopPropagation();
           executePassThrough(targetBtn);
         } else {
-          // If not all checked, shake or alert gently
           console.log("[TradeGuard 🛡️] Cannot submit: Not all checklist items are verified.");
         }
         return;
@@ -650,6 +761,7 @@
   }
 
   function closeChecklistModal() {
+    restoreBrokerOverlays();
     if (activeKeyDownHandler) {
       window.removeEventListener("keydown", activeKeyDownHandler, true);
       activeKeyDownHandler = null;
