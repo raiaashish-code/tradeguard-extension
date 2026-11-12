@@ -1,13 +1,11 @@
 /**
- * TradeGuard MVP 1.0.1 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
- * Content Script: Capture-phase click interceptor, Screen context scraper,
- * isolated Shadow DOM Gatekeeper overlay, Keyboard Rapid-Check (1-9, Enter),
- * and Safe Replay mechanism.
+ * TradeGuard MVP 1.0.2 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
  * 
- * Supports:
- * - New Order placement (Buy / Sell / Limit / Market / Stop)
- * - Open Position Exits (Exit Position / Square Off / Close Position / Sell to Close)
- * - TradingView, Zerodha Kite Web, Dhan Web, and generic trading platforms
+ * Features:
+ * - 100% Synchronous event interception (prevents async callback dispatch bypass)
+ * - Intercepts New Orders (Buy, Sell, Limit, Market) & Open Position Exits (Exit, Square Off, Close)
+ * - Supports Zerodha Kite Web, Dhan Web, TradingView, Upstox, and any web trading terminal
+ * - Visual status pill so traders know TradeGuard is actively guarding the tab
  */
 
 (function () {
@@ -17,26 +15,106 @@
     "Is this setup aligned with the higher-timeframe trend (No FOMO)?"
   ];
 
+  // Synchronous state caching
+  let isEnabled = true;
+  let currentRules = DEFAULT_RULES;
   let isBypassing = false;
   let activeModalHost = null;
   let activeKeyDownHandler = null;
+  let lastInterceptionTime = 0;
 
+  // Log active state immediately in DevTools
   console.log(
-    "[TradeGuard 🛡️] Active on:",
-    window.location.hostname,
-    "| Frame:",
-    window === window.top ? "top-level" : "iframe"
+    "%c[TradeGuard 🛡️ v1.0.2] ACTIVE ON THIS TAB",
+    "background: #0284c7; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;"
   );
+  console.log("[TradeGuard] URL:", window.location.href, "| Frame:", window === window.top ? "top-window" : "iframe");
+
+  // Load and cache settings synchronously from chrome.storage
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get({ rules: DEFAULT_RULES, enabled: true }, (data) => {
+        if (data) {
+          if (Array.isArray(data.rules) && data.rules.length > 0) currentRules = data.rules;
+          if (typeof data.enabled === "boolean") isEnabled = data.enabled;
+          console.log("[TradeGuard 🛡️] Cached storage rules:", currentRules.length, "Active:", isEnabled);
+        }
+      });
+
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "local") {
+          if (changes.rules && changes.rules.newValue) currentRules = changes.rules.newValue;
+          if (changes.enabled && typeof changes.enabled.newValue === "boolean") isEnabled = changes.enabled.newValue;
+          console.log("[TradeGuard 🛡️] Settings updated live. Active:", isEnabled);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn("[TradeGuard] Storage access notice:", err);
+  }
+
+  // Inject a small, non-intrusive status pill in the bottom corner of the page
+  function injectStatusPill() {
+    if (window !== window.top) return; // Only in top frame
+    if (document.getElementById("tradeguard-live-pill")) return;
+
+    const pill = document.createElement("div");
+    pill.id = "tradeguard-live-pill";
+    pill.setAttribute("style", [
+      "position: fixed",
+      "bottom: 12px",
+      "right: 12px",
+      "z-index: 2147483640",
+      "background: #0f172a",
+      "color: #38bdf8",
+      "border: 1px solid #334155",
+      "border-radius: 20px",
+      "padding: 4px 10px",
+      "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "font-size: 11px",
+      "font-weight: 600",
+      "display: flex",
+      "align-items: center",
+      "gap: 6px",
+      "box-shadow: 0 4px 12px rgba(0,0,0,0.5)",
+      "cursor: pointer",
+      "user-select: none",
+      "opacity: 0.85",
+      "transition: opacity 0.2s ease, transform 0.2s ease"
+    ].join(";"));
+
+    pill.innerHTML = `
+      <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981;"></span>
+      <span>TradeGuard Active</span>
+    `;
+
+    pill.onmouseenter = () => { pill.style.opacity = "1"; pill.style.transform = "scale(1.04)"; };
+    pill.onmouseleave = () => { pill.style.opacity = "0.85"; pill.style.transform = "scale(1)"; };
+
+    pill.onclick = () => {
+      alert("TradeGuard MVP 1.0.2 is ACTIVE on this page.\n\nAll Buy, Sell, and Position Exit/Square-Off orders will be intercepted to protect against impulsive trades.");
+    };
+
+    (document.body || document.documentElement).appendChild(pill);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", injectStatusPill);
+  } else {
+    injectStatusPill();
+  }
 
   /**
-   * Identifies if an element is an order submit button OR an open position exit button.
+   * Identifies whether a clicked element represents an order submission or a position exit.
    */
-  function isOrderSubmitButton(el) {
+  function isOrderSubmitButton(rawEl) {
+    if (!rawEl) return null;
+    const el = rawEl.nodeType === 3 ? rawEl.parentElement : rawEl;
     if (!el) return null;
 
-    // Search for closest interactive or button-like container
+    // Search for closest clickable or button-like container
     const btn = el.closest(
-      "button, [role='button'], input[type='submit'], a.btn, a[class*='btn'], a[class*='button'], div[class*='btn'], div[class*='button'], [data-name*='order'], [data-name*='close'], [data-name*='exit'], tr [class*='close'], tr [class*='exit']"
+      "button, [role='button'], input[type='submit'], input[type='button'], a, div[class*='btn'], div[class*='button'], span[class*='btn'], span[class*='button'], [data-name*='order'], [data-name*='close'], [data-name*='exit'], tr [class*='close'], tr [class*='exit']"
     );
 
     if (!btn || btn.disabled) return null;
@@ -49,29 +127,40 @@
       btn.getAttribute("aria-label") ||
       btn.getAttribute("title") ||
       btn.getAttribute("data-tooltip") ||
+      btn.getAttribute("data-name") ||
       ""
     );
 
-    // Normalize whitespace (turn multiple newlines/spaces into single spaces)
+    // Normalize whitespace (single spaces, lowercase)
     const label = rawText.replace(/\s+/g, " ").trim().toLowerCase();
 
-    // 1. Position Exit & Square-Off keywords
+    // 1. Check if the element is inside an active Order Window / Modal
+    const orderModal = btn.closest(
+      ".order-window, .order-form, .dialog-box, .modal-content, [class*='order-ticket'], [class*='OrderWindow'], [class*='orderWindow'], [class*='place-order']"
+    );
+
+    if (orderModal) {
+      // If inside an order modal, ANY primary action that isn't cancel/dismiss is an order submit button
+      const isCancelAction = /^(cancel|close|dismiss|back|settings|depth|✕|×)/i.test(label);
+      if (!isCancelAction && (btn.type === "submit" || btn.matches(".btn, .btn-blue, .btn-orange, button, [role='button']"))) {
+        console.log("[TradeGuard 🛡️] Intercepted button inside Order Window:", { label, btn });
+        return btn;
+      }
+    }
+
+    // 2. Position Exit & Square-Off keywords
     const isExitAction =
-      /\b(exit|square\s*off|squareoff|close\s*position|close\s*trade|close\s*order|exit\s*position|exit\s*all|instant\s*exit|flatten|reverse)\b/i.test(
-        label
-      );
+      /\b(exit|square\s*off|squareoff|close\s*position|close\s*trade|close\s*order|exit\s*position|exit\s*all|instant\s*exit|flatten|reverse)\b/i.test(label) ||
+      btn.matches(".actions .exit, .actions .close, .exit-position, .btn-squareoff, [data-name='close-position'], .button-close");
 
-    // 2. Buy & Sell Order keywords
+    // 3. Buy & Sell Order keywords
     const isOrderAction =
-      /\b(buy\s*market|sell\s*market|buy\s*limit|sell\s*limit|place\s*order|submit\s*order|buy\s*order|sell\s*order|execute\s*trade|confirm\s*order)\b/i.test(
-        label
-      ) ||
-      /^(buy|sell|exit|close|square\s*off|submit|confirm|execute)(\s|$)/i.test(label);
+      /\b(buy\s*market|sell\s*market|buy\s*limit|sell\s*limit|place\s*order|submit\s*order|buy\s*order|sell\s*order|execute\s*trade|confirm\s*order|instant\s*buy|instant\s*sell)\b/i.test(label) ||
+      /^(buy|sell|exit|square\s*off|submit|confirm|execute)(\s|$)/i.test(label);
 
-    // 3. Known Broker Data Attributes & Class Selectors
+    // 4. Broker Data Attributes & Class Selectors
     const matchesBrokerSelector = btn.matches(
       [
-        // Generic & TradingView
         "[data-name='submit-order']",
         "[data-name='close-position']",
         "[data-name='order-confirm-button']",
@@ -79,47 +168,27 @@
         ".order-buy-button",
         ".order-sell-button",
         ".order-submit-button",
-        ".button-close",
-        // Zerodha Kite Web
         ".btn-blue",
         ".btn-orange",
-        ".actions .exit",
-        ".actions .close",
-        // Dhan Web
-        ".exit-position",
-        ".btn-squareoff",
-        ".place-order",
         ".buy-btn",
         ".sell-btn"
       ].join(", ")
     );
 
-    // 4. Submit buttons inside an open order ticket or confirmation dialog
-    const isInOrderWindow =
-      (btn.type === "submit" || btn.getAttribute("role") === "button") &&
-      Boolean(
-        btn.closest(
-          ".order-window, .order-form, .dialog-box, .modal-content, [class*='order'], [class*='ticket'], [class*='dialog']"
-        )
-      ) &&
-      label.length > 0 &&
-      !/cancel|abort|dismiss|settings|close\s*dialog/i.test(label);
-
-    // 5. Close icon on position rows in TradingView or broker tables
+    // 5. Close icon on position rows
     const isPositionRowClose =
       (btn.matches("[title*='close' i], [aria-label*='close' i], [data-name*='close' i]") ||
         btn.classList.contains("close") ||
         btn.classList.contains("button-close")) &&
       Boolean(btn.closest("tr, [role='row'], .position, .positions-table, [class*='position']"));
 
-    if (isExitAction || isOrderAction || matchesBrokerSelector || isInOrderWindow || isPositionRowClose) {
-      console.log("[TradeGuard 🛡️] Intercept target detected:", {
+    if (isExitAction || isOrderAction || matchesBrokerSelector || isPositionRowClose) {
+      console.log("[TradeGuard 🛡️] Intercept target identified:", {
         element: btn,
         label,
         isExitAction,
         isOrderAction,
         matchesBrokerSelector,
-        isInOrderWindow,
         isPositionRowClose
       });
       return btn;
@@ -149,18 +218,7 @@
       rawText.includes("CLOSE") ||
       targetBtn.matches("[data-name='close-position'], .button-close, .actions .exit")
     ) {
-      // For open positions, check if position was Long or Short
-      const row = targetBtn.closest("tr, [role='row'], .position, [class*='position']");
-      if (row) {
-        const rowText = row.textContent.toUpperCase();
-        if (rowText.includes("SHORT") || rowText.includes("-") || rowText.includes("SELL")) {
-          side = "BUY (CLOSE SHORT)";
-        } else {
-          side = "SELL (EXIT LONG)";
-        }
-      } else {
-        side = "SELL (EXIT POSITION)";
-      }
+      side = "SELL (EXIT POSITION)";
     } else if (
       rawText.includes("SELL") ||
       targetBtn.classList.contains("order-sell-button") ||
@@ -175,21 +233,17 @@
       side = "BUY";
     }
 
-    // Attempt to guess symbol from row, order ticket, or page title
+    // Try to scrape symbol from position row or active ticket
     let symbolGuess = "";
 
-    // Check position row first
     const row = targetBtn.closest("tr, [role='row'], .position, [class*='position']");
     if (row) {
-      const symEl = row.querySelector(
-        ".symbol, .instrument, [class*='symbol'], [class*='tradable'], td:first-child"
-      );
+      const symEl = row.querySelector(".symbol, .instrument, [class*='symbol'], [class*='tradable'], td:first-child");
       if (symEl && symEl.textContent) {
         symbolGuess = symEl.textContent.trim().split(" ")[0];
       }
     }
 
-    // Check broker specific order ticket selectors
     if (!symbolGuess) {
       const symbolEl = document.querySelector(
         ".symbol-name, [data-name='legend-source-title'], .tradable-instrument, .order-window .instrument-title, [class*='instrument-title'], .stock-name"
@@ -199,7 +253,6 @@
       }
     }
 
-    // Fallback to title
     if (!symbolGuess) {
       const titleParts = document.title.split(" ");
       if (titleParts[0]) {
@@ -236,8 +289,8 @@
         .backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(2, 6, 23, 0.85);
-          backdrop-filter: blur(4px);
+          background: rgba(2, 6, 23, 0.88);
+          backdrop-filter: blur(5px);
           z-index: 2147483647;
           display: flex;
           align-items: center;
@@ -261,7 +314,7 @@
           border-radius: 12px;
           padding: 22px;
           color: #f8fafc;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
           animation: tgCardPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .top {
@@ -471,7 +524,8 @@
       </div>
     `;
 
-    document.documentElement.appendChild(host);
+    const parent = document.body || document.documentElement;
+    parent.appendChild(host);
 
     const items = shadow.querySelectorAll(".item");
     const checkboxes = shadow.querySelectorAll("input[type='checkbox']");
@@ -580,59 +634,51 @@
     closeChecklistModal();
 
     try {
-      console.log("[TradeGuard 🛡️] Executing pass-through click on:", targetBtn);
+      console.log("[TradeGuard 🛡️] Executing verified pass-through click on:", targetBtn);
       targetBtn.click();
     } catch (err) {
       console.error("[TradeGuard] Pass-through click error:", err);
     } finally {
       setTimeout(() => {
         isBypassing = false;
-      }, 150);
+      }, 200);
     }
   }
 
   /**
    * Capture-phase click interceptor (FR-01)
+   * 100% SYNCHRONOUS: Calls preventDefault() immediately without any async waiting!
    */
-  function handleCaptureClick(e) {
+  function handleCaptureEvent(e) {
     if (isBypassing) {
+      return; // Safe pass-through in progress
+    }
+
+    if (!isEnabled) {
+      return; // Guard is turned off by user
+    }
+
+    // Debounce duplicate events (e.g. pointerdown + mousedown + click within 80ms)
+    const now = Date.now();
+    if (now - lastInterceptionTime < 80) {
       return;
     }
 
     const orderBtn = isOrderSubmitButton(e.target);
     if (!orderBtn) return;
 
-    // Check if extension is enabled
-    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get({ rules: DEFAULT_RULES, enabled: true }, (data) => {
-        if (data.enabled === false) {
-          console.log("[TradeGuard 🛡️] Guard is disabled in settings. Passing through.");
-          return;
-        }
+    lastInterceptionTime = now;
 
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+    // IMMEDIATE SYNCHRONOUS DOM FREEZE
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
 
-        const activeRules = data.rules && data.rules.length > 0 ? data.rules : DEFAULT_RULES;
-        openChecklistModal(orderBtn, activeRules);
-      });
-    } else {
-      const isEnabled = localStorage.getItem("tradeguard_enabled") !== "false";
-      if (!isEnabled) return;
-
-      const localRules = JSON.parse(
-        localStorage.getItem("tradeguard_rules") || JSON.stringify(DEFAULT_RULES)
-      );
-
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-
-      openChecklistModal(orderBtn, localRules);
-    }
+    console.log("[TradeGuard 🛡️] FROZE DOM EVENT! Opening gatekeeper checklist for:", orderBtn);
+    openChecklistModal(orderBtn, currentRules);
   }
 
-  // Register in the CAPTURE phase (useCapture = true)
-  document.addEventListener("click", handleCaptureClick, true);
+  // Register on both click and pointerdown in the CAPTURE phase (useCapture = true)
+  document.addEventListener("click", handleCaptureEvent, true);
+  document.addEventListener("pointerdown", handleCaptureEvent, true);
 })();
