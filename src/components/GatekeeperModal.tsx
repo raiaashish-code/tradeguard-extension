@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Shield, X, AlertTriangle, ArrowRight, Calculator, Tag, Sparkles } from 'lucide-react';
-import { InterceptedOrderContext } from '../types';
+import { Shield, X, AlertTriangle, ArrowRight, Calculator, Tag, Sparkles, Crown } from 'lucide-react';
+import { InterceptedOrderContext, UserPlanTier } from '../types';
 
 interface GatekeeperModalProps {
   orderContext: InterceptedOrderContext;
   rules: string[];
   capital?: number;
   maxRiskPercent?: number;
+  userPlan?: UserPlanTier;
   onConfirm: (extraDetails?: { stopLoss: number; strategy: string; mindset: string }) => void;
   onAbort: () => void;
   onRuleToggled?: (ruleIndex: number, checked: boolean) => void;
@@ -17,12 +18,16 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
   rules,
   capital = 200000,
   maxRiskPercent = 1.0,
+  userPlan = 'free',
   onConfirm,
   onAbort,
   onRuleToggled
 }) => {
+  const isPro = userPlan === 'pro';
+  const effectiveRules = isPro ? rules : rules.slice(0, 3);
+
   const [checkedState, setCheckedState] = useState<boolean[]>(() =>
-    new Array(rules.length).fill(false)
+    new Array(effectiveRules.length).fill(false)
   );
 
   const isSell = orderContext.side === 'SELL';
@@ -42,7 +47,7 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
 
   const toggleRule = useCallback(
     (index: number) => {
-      if (index < 0 || index >= rules.length) return;
+      if (index < 0 || index >= effectiveRules.length) return;
       setCheckedState((prev) => {
         const next = [...prev];
         next[index] = !next[index];
@@ -52,7 +57,7 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
         return next;
       });
     },
-    [rules.length, onRuleToggled]
+    [effectiveRules.length, onRuleToggled]
   );
 
   const handleConfirmOrder = useCallback(() => {
@@ -71,7 +76,7 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
       if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
 
       const keyNum = parseInt(e.key, 10);
-      if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= rules.length) {
+      if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= effectiveRules.length) {
         e.preventDefault();
         e.stopPropagation();
         toggleRule(keyNum - 1);
@@ -117,9 +122,18 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
               <Shield className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-sky-400 leading-none">
-                TradeGuard Gatekeeper
-              </h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-bold text-sky-400 leading-none">
+                  TradeGuard Gatekeeper
+                </h3>
+                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
+                  isPro
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                }`}>
+                  {isPro ? '👑 PRO' : 'FREE'}
+                </span>
+              </div>
               <span className="text-[10px] text-slate-400">Pre-Trade Discipline Interceptor</span>
             </div>
           </div>
@@ -225,7 +239,13 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
 
         {/* Checklist */}
         <div className="space-y-2 mb-4">
-          {rules.map((rule, idx) => {
+          {!isPro && rules.length > 3 && (
+            <div className="text-[10.5px] text-amber-400 bg-amber-950/30 border border-amber-500/30 p-2 rounded flex items-center justify-between">
+              <span>Free Tier: Verifying 3 of {rules.length} rules</span>
+              <span className="font-semibold text-[10px]">Upgrade to verify all</span>
+            </div>
+          )}
+          {effectiveRules.map((rule, idx) => {
             const isChecked = checkedState[idx];
             return (
               <div

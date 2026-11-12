@@ -27,6 +27,7 @@
   let maxTradesPerDay = 5;
   let cooldownUntil = 0;
   let tradeJournal = [];
+  let userPlan = "free";
 
   let isBypassing = false;
   let activeModalHost = null;
@@ -35,7 +36,7 @@
   let suppressedBrokerElements = [];
 
   console.log(
-    "%c[TradeGuard 🛡️ v1.1.0] ACTIVE ON THIS TAB",
+    "%c[TradeGuard 🛡️ v1.2.0] ACTIVE ON THIS TAB",
     "background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px;"
   );
 
@@ -51,7 +52,8 @@
           cooldownMinutes: 3,
           maxTradesPerDay: 5,
           cooldownUntil: 0,
-          tradeJournal: []
+          tradeJournal: [],
+          userPlan: "free"
         }, (data) => {
           if (data) {
             if (Array.isArray(data.rules) && data.rules.length > 0) currentRules = data.rules;
@@ -62,6 +64,7 @@
             if (typeof data.maxTradesPerDay === "number") maxTradesPerDay = data.maxTradesPerDay;
             if (typeof data.cooldownUntil === "number") cooldownUntil = data.cooldownUntil;
             if (Array.isArray(data.tradeJournal)) tradeJournal = data.tradeJournal;
+            if (data.userPlan) userPlan = data.userPlan;
           }
         });
 
@@ -75,6 +78,7 @@
             if (changes.maxTradesPerDay && typeof changes.maxTradesPerDay.newValue === "number") maxTradesPerDay = changes.maxTradesPerDay.newValue;
             if (changes.cooldownUntil && typeof changes.cooldownUntil.newValue === "number") cooldownUntil = changes.cooldownUntil.newValue;
             if (changes.tradeJournal && Array.isArray(changes.tradeJournal.newValue)) tradeJournal = changes.tradeJournal.newValue;
+            if (changes.userPlan && changes.userPlan.newValue) userPlan = changes.userPlan.newValue;
           }
         });
       }

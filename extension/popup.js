@@ -12,6 +12,12 @@ const addRuleBtn = document.getElementById("addRuleBtn");
 const rulesList = document.getElementById("rulesList");
 const emptyNotice = document.getElementById("emptyNotice");
 
+const planBadge = document.getElementById("planBadge");
+const accountBtn = document.getElementById("accountBtn");
+const planStrip = document.getElementById("planStrip");
+const planStripText = document.getElementById("planStripText");
+const stripUpgradeBtn = document.getElementById("stripUpgradeBtn");
+
 const capitalInput = document.getElementById("capitalInput");
 const maxRiskInput = document.getElementById("maxRiskInput");
 const cooldownSelect = document.getElementById("cooldownSelect");
@@ -23,6 +29,19 @@ const clearJournalBtn = document.getElementById("clearJournalBtn");
 
 const tabButtons = document.querySelectorAll(".tab-btn");
 const tabContents = document.querySelectorAll(".tab-content");
+
+// Modal Elements
+const upgradeModal = document.getElementById("upgradeModal");
+const closeUpgradeModal = document.getElementById("closeUpgradeModal");
+const activateProBtn = document.getElementById("activateProBtn");
+const downgradeFreeBtn = document.getElementById("downgradeFreeBtn");
+const googleSignInBtn = document.getElementById("googleSignInBtn");
+const authStatusText = document.getElementById("authStatusText");
+const googleBtnText = document.getElementById("googleBtnText");
+
+let currentPlan = "free";
+let currentUserEmail = null;
+let currentRulesState = DEFAULT_RULES;
 
 // Tab Switching
 tabButtons.forEach(btn => {
@@ -45,7 +64,70 @@ function updateToggleLabelState(isActive) {
   }
 }
 
+function updatePlanUI(plan, email) {
+  currentPlan = plan || "free";
+  currentUserEmail = email || null;
+
+  if (plan === "pro") {
+    if (planBadge) {
+      planBadge.textContent = "👑 Pro";
+      planBadge.className = "plan-badge pro";
+    }
+    if (accountBtn) {
+      accountBtn.innerHTML = "👑 Pro Active";
+      accountBtn.style.color = "#fbbf24";
+      accountBtn.style.borderColor = "#f59e0b";
+    }
+    if (planStrip) {
+      planStrip.className = "plan-strip pro";
+      planStripText.innerHTML = "👑 Pro Trader: <strong>Unlimited Rules Unlocked</strong>";
+      if (stripUpgradeBtn) stripUpgradeBtn.style.display = "none";
+    }
+    if (activateProBtn) {
+      activateProBtn.textContent = "✓ Pro Plan Active";
+      activateProBtn.style.opacity = "0.7";
+      activateProBtn.disabled = true;
+    }
+    if (downgradeFreeBtn) {
+      downgradeFreeBtn.style.display = "block";
+    }
+  } else {
+    if (planBadge) {
+      planBadge.textContent = "Free";
+      planBadge.className = "plan-badge free";
+    }
+    if (accountBtn) {
+      accountBtn.innerHTML = "👑 Upgrade";
+      accountBtn.style.color = "#cbd5e1";
+      accountBtn.style.borderColor = "#334155";
+    }
+    if (planStrip) {
+      planStrip.className = "plan-strip";
+      planStripText.innerHTML = "Free Plan: <strong>3 Rules max</strong>";
+      if (stripUpgradeBtn) stripUpgradeBtn.style.display = "block";
+    }
+    if (activateProBtn) {
+      activateProBtn.textContent = "⭐ Activate Pro License (Instant)";
+      activateProBtn.style.opacity = "1";
+      activateProBtn.disabled = false;
+    }
+    if (downgradeFreeBtn) {
+      downgradeFreeBtn.style.display = "none";
+    }
+  }
+
+  // Update Auth box
+  if (currentUserEmail) {
+    if (authStatusText) authStatusText.textContent = `Signed in as: ${currentUserEmail}`;
+    if (googleBtnText) googleBtnText.textContent = "Sign Out";
+  } else {
+    if (authStatusText) authStatusText.textContent = "Sign in to sync your rules & unlock Pro features across devices";
+    if (googleBtnText) googleBtnText.textContent = "Continue with Google";
+  }
+}
+
 function renderRules(rules) {
+  currentRulesState = rules || [];
   rulesList.innerHTML = "";
   if (!rules || rules.length === 0) {
     if (emptyNotice) emptyNotice.style.display = "block";
@@ -82,7 +164,10 @@ function renderJournal(trades) {
     return;
   }
 
-  trades.slice().reverse().forEach(t => {
+  // If free plan, show last 5 trades
+  const displayTrades = currentPlan === "pro" ? trades : trades.slice(-5);
+
+  displayTrades.slice().reverse().forEach(t => {
     const item = document.createElement("div");
     item.className = "journal-item";
     const sideClass = t.side === "BUY" ? "badge-buy" : "badge-sell";
@@ -112,10 +197,11 @@ function loadData(callback) {
       maxRiskPercent: 1.0,
       cooldownMinutes: 3,
       maxTradesPerDay: 5,
-      tradeJournal: []
+      tradeJournal: [],
+      userPlan: "free",
+      userEmail: null
     }, callback);
   } else {
-    // preview fallback
     callback({
       rules: JSON.parse(localStorage.getItem("tradeguard_rules") || JSON.stringify(DEFAULT_RULES)),
       enabled: localStorage.getItem("tradeguard_enabled") !== "false",
@@ -123,7 +209,9 @@ function loadData(callback) {
       maxRiskPercent: Number(localStorage.getItem("tradeguard_maxrisk") || "1.0"),
       cooldownMinutes: Number(localStorage.getItem("tradeguard_cooldown") || "3"),
       maxTradesPerDay: Number(localStorage.getItem("tradeguard_maxtrades") || "5"),
-      tradeJournal: JSON.parse(localStorage.getItem("tradeguard_journal") || "[]")
+      tradeJournal: JSON.parse(localStorage.getItem("tradeguard_journal") || "[]"),
+      userPlan: localStorage.getItem("tradeguard_plan") || "free",
+      userEmail: localStorage.getItem("tradeguard_email") || null
     });
   }
 }
@@ -139,16 +227,75 @@ function saveData(data, callback) {
     if (data.cooldownMinutes !== undefined) localStorage.setItem("tradeguard_cooldown", String(data.cooldownMinutes));
     if (data.maxTradesPerDay) localStorage.setItem("tradeguard_maxtrades", String(data.maxTradesPerDay));
     if (data.tradeJournal) localStorage.setItem("tradeguard_journal", JSON.stringify(data.tradeJournal));
+    if (data.userPlan) localStorage.setItem("tradeguard_plan", data.userPlan);
+    if (data.userEmail !== undefined) localStorage.setItem("tradeguard_email", data.userEmail || "");
     if (callback) callback();
   }
 }
 
+// Modal open/close
+function openModal() {
+  if (upgradeModal) upgradeModal.classList.add("open");
+}
+function closeModal() {
+  if (upgradeModal) upgradeModal.classList.remove("open");
+}
+
+if (accountBtn) accountBtn.onclick = openModal;
+if (planBadge) planBadge.onclick = openModal;
+if (stripUpgradeBtn) stripUpgradeBtn.onclick = openModal;
+if (closeUpgradeModal) closeUpgradeModal.onclick = closeModal;
+
+// Activate Pro License
+if (activateProBtn) {
+  activateProBtn.onclick = () => {
+    saveData({ userPlan: "pro", userEmail: currentUserEmail || "trader@tradeguard.app" }, () => {
+      updatePlanUI("pro", currentUserEmail || "trader@tradeguard.app");
+      renderJournal(tradeJournal);
+      closeModal();
+      alert("🎉 Welcome to TradeGuard Pro!\n\nUnlimited pre-trade rules, custom cooling-off timers, and advanced 1% risk controls are now unlocked.");
+    });
+  };
+}
+
+// Downgrade to Free Tier (for test purposes)
+if (downgradeFreeBtn) {
+  downgradeFreeBtn.onclick = () => {
+    saveData({ userPlan: "free" }, () => {
+      updatePlanUI("free", currentUserEmail);
+      renderJournal(tradeJournal);
+      closeModal();
+      alert("Switched back to Free Tier.");
+    });
+  };
+}
+
+// Sign in with Google simulation
+if (googleSignInBtn) {
+  googleSignInBtn.onclick = () => {
+    if (currentUserEmail) {
+      // Sign out
+      saveData({ userEmail: null, userPlan: "free" }, () => {
+        updatePlanUI("free", null);
+      });
+    } else {
+      // Sign in
+      const email = prompt("Enter your Google Account email to sign in:", "rai.aashish@gmail.com") || "rai.aashish@gmail.com";
+      saveData({ userEmail: email }, () => {
+        updatePlanUI(currentPlan, email);
+      });
+    }
+  };
+}
+
 // Initial load
+let tradeJournal = [];
 loadData((data) => {
   if (guardEnabledEl) {
     guardEnabledEl.checked = data.enabled !== false;
     updateToggleLabelState(guardEnabledEl.checked);
   }
+  updatePlanUI(data.userPlan || "free", data.userEmail);
   renderRules(data.rules || DEFAULT_RULES);
 
   if (capitalInput) capitalInput.value = data.capital || 200000;
@@ -156,7 +303,8 @@ loadData((data) => {
   if (cooldownSelect) cooldownSelect.value = String(data.cooldownMinutes !== undefined ? data.cooldownMinutes : 3);
   if (maxTradesInput) maxTradesInput.value = data.maxTradesPerDay || 5;
 
-  renderJournal(data.tradeJournal || []);
+  tradeJournal = data.tradeJournal || [];
+  renderJournal(tradeJournal);
 });
 
 // Event Listeners
@@ -174,7 +322,14 @@ maxRiskInput.addEventListener("change", () => {
 });
 
 cooldownSelect.addEventListener("change", () => {
-  saveData({ cooldownMinutes: parseInt(cooldownSelect.value, 10) || 0 });
+  const val = parseInt(cooldownSelect.value, 10) || 0;
+  if (currentPlan === "free" && (val === 1 || val === 5)) {
+    alert("⭐ Custom Cooldown Durations (1 min & 5 min) are a TradeGuard Pro feature.\n\nFree plan defaults to standard 3-minute cooling-off.");
+    cooldownSelect.value = "3";
+    openModal();
+    return;
+  }
+  saveData({ cooldownMinutes: val });
 });
 
 maxTradesInput.addEventListener("change", () => {
@@ -187,10 +342,21 @@ function handleAddRule() {
 
   loadData((data) => {
     const current = data.rules || [];
-    if (current.length >= 5) {
-      alert("MVP1 supports up to 5 active rules to keep pre-trade execution fast.");
+    const plan = data.userPlan || "free";
+
+    // Free tier: max 3 rules
+    if (plan === "free" && current.length >= 3) {
+      newRuleInput.value = "";
+      openModal();
       return;
     }
+
+    // Pro tier: max 20 rules
+    if (current.length >= 20) {
+      alert("TradeGuard supports up to 20 active rules to keep order execution fast.");
+      return;
+    }
+
     const updated = [...current, text];
     saveData({ rules: updated }, () => {
       newRuleInput.value = "";
@@ -247,6 +413,7 @@ exportCsvBtn.addEventListener("click", () => {
 clearJournalBtn.addEventListener("click", () => {
   if (confirm("Clear local trade log?")) {
     saveData({ tradeJournal: [] }, () => {
+      tradeJournal = [];
       renderJournal([]);
     });
   }

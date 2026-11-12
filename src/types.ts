@@ -47,3 +47,13 @@ export interface DisciplineSettings {
   cooldownMinutes: number;
   maxTradesPerDay: number;
 }
+
+export type UserPlanTier = 'free' | 'pro';
+
+export interface UserAccount {
+  isSignedIn: boolean;
+  email: string | null;
+  name: string | null;
+  plan: UserPlanTier;
+  licenseKey?: string;
+}
