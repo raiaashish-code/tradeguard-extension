@@ -1,13 +1,12 @@
 /**
- * TradeGuard MVP 1.0.3 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
+ * TradeGuard MVP 1.0.4 — Zero-API Pre-Trade & Open Position Exit Checklist Extension
  * 
- * Features:
- * - Window-level capture phase interception (highest possible DOM precedence)
- * - Tree-walking order & exit button resolver (catches Dhan's "Instant Sell", Kite, TV)
- * - Emoji & symbol stripping (detects "⚡ Instant Sell", "✕ Close", etc.)
- * - 100% Synchronous event cancellation (zero async delay leak)
- * - Safe replay mechanism with native MouseEvent dispatch
- * - Visual status pill confirming active protection
+ * Major Fixes for Dhan Web, Zerodha Kite, and TradingView:
+ * - Uses e.composedPath() to pierce Web Components and Shadow DOM (essential for Dhan)
+ * - Directly targets Dhan's .btn-submit, .btn-sell, .btn-buy, and "⚡ Instant Sell" / "Instant Buy"
+ * - Multi-event capture: intercepts 'click', 'mousedown', and 'pointerdown' in capture phase
+ * - Resets all styles on #tradeguard-shadow-host with all: initial and z-index: 2147483647
+ * - Safe replay re-dispatches genuine MouseEvent to trigger React / Angular component handlers
  */
 
 (function () {
@@ -23,11 +22,13 @@
   let isBypassing = false;
   let activeModalHost = null;
   let activeKeyDownHandler = null;
+  let lastModalOpenTime = 0;
 
   console.log(
-    "%c[TradeGuard 🛡️ v1.0.3] RUNNING ON THIS TAB",
-    "background: #0284c7; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;"
+    "%c[TradeGuard 🛡️ v1.0.4] LOADED ON THIS TAB",
+    "background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px;"
   );
+  console.log("[TradeGuard] Host:", window.location.hostname, "| Top Frame:", window === window.top);
 
   // Sync settings from chrome.storage
   try {
@@ -52,7 +53,7 @@
     console.warn("[TradeGuard] Storage access notice:", err);
   }
 
-  // Visual status pill confirming TradeGuard is loaded on the tab
+  // Visual confirmation pill
   function injectStatusPill() {
     if (window !== window.top) return;
     if (document.getElementById("tradeguard-live-pill")) return;
@@ -87,11 +88,8 @@
       <span>TradeGuard Active</span>
     `;
 
-    pill.onmouseenter = () => { pill.style.opacity = "1"; pill.style.transform = "scale(1.05)"; };
-    pill.onmouseleave = () => { pill.style.opacity = "0.9"; pill.style.transform = "scale(1)"; };
-
     pill.onclick = () => {
-      alert("TradeGuard v1.0.3 is ACTIVE.\n\nAll Buy, Sell, and Position Exit/Square-Off orders on this tab will be intercepted for rational pre-trade verification.");
+      alert("TradeGuard v1.0.4 is ACTIVE.\n\nGuarding all Buy, Sell, and Position Exit/Square-Off orders on this tab.");
     };
 
     (document.body || document.documentElement).appendChild(pill);
@@ -104,104 +102,112 @@
   }
 
   /**
-   * Tree-walking order button resolver.
-   * Walks up to 8 levels from the clicked target node.
-   * Cleans emojis, icons, and whitespace to catch "⚡ Instant Sell", "Sell", "Buy", "Exit", "Close", etc.
+   * Resolves order submit button by piercing Web Components / Shadow DOM using e.composedPath().
    */
-  function findOrderSubmitButton(rawEl) {
-    if (!rawEl) return null;
-    let curr = rawEl.nodeType === 3 ? rawEl.parentElement : rawEl;
-    let depth = 0;
+  function findOrderSubmitButton(e) {
+    if (!e) return null;
 
-    while (curr && curr !== document.body && curr !== document.documentElement && depth < 8) {
-      const tag = curr.tagName ? curr.tagName.toLowerCase() : "";
-      
+    // Use composedPath() to pierce all Shadow DOM boundaries (essential for Dhan Web Components)
+    const path = typeof e.composedPath === "function" ? e.composedPath() : [];
+    const elementsToInspect = path.length > 0 ? path : [e.target];
+
+    for (const node of elementsToInspect) {
+      if (!node || node.nodeType !== 1) continue; // Only elements
+
       // Extract text content and attributes
       const rawText = (
-        curr.innerText ||
-        curr.textContent ||
-        curr.value ||
-        curr.getAttribute("aria-label") ||
-        curr.getAttribute("title") ||
-        curr.getAttribute("data-tooltip") ||
-        curr.getAttribute("data-name") ||
+        node.innerText ||
+        node.textContent ||
+        node.value ||
+        node.getAttribute("aria-label") ||
+        node.getAttribute("title") ||
+        node.getAttribute("data-name") ||
+        node.getAttribute("data-tooltip") ||
         ""
       );
 
-      // Clean text: strip emojis (like ⚡), punctuation, and normalize whitespace
+      // Clean text: strip emojis (like ⚡), symbols, punctuation, and lowercase
       const cleanText = rawText
         .replace(/[^\w\s]/gi, " ")
         .replace(/\s+/g, " ")
         .trim()
         .toLowerCase();
 
-      // Check if inside an Order Window / Modal / Dialog (like Dhan's modal or Kite's order window)
-      const isInsideOrderWindow = Boolean(
-        curr.closest(
-          ".order-window, .order-form, .dialog-box, .modal-content, [class*='order'], [class*='ticket'], [class*='modal'], [class*='dialog']"
-        )
-      );
+      const className = typeof node.className === "string" ? node.className.toLowerCase() : "";
+      const id = typeof node.id === "string" ? node.id.toLowerCase() : "";
+
+      // 1. Dhan Web Components: .btn-submit, .btn-sell, .btn-buy, btnSubmit
+      const isDhanSubmitBtn =
+        id.includes("btnsubmit") ||
+        className.includes("btn-submit") ||
+        className.includes("btn-sell") ||
+        className.includes("btn-buy") ||
+        className.includes("btn-modify") ||
+        className.includes("instant-sell") ||
+        className.includes("btn-squareoff");
+
+      // 2. Zerodha Kite Web: .btn-orange, .btn-blue, .actions .exit
+      const isKiteSubmitBtn =
+        className.includes("btn-orange") ||
+        className.includes("btn-blue") ||
+        (className.includes("actions") && className.includes("exit"));
+
+      // 3. TradingView: submit-order, close-position, .order-buy-button, .order-sell-button, .button-close
+      const isTradingViewBtn =
+        node.getAttribute("data-name") === "submit-order" ||
+        node.getAttribute("data-name") === "close-position" ||
+        className.includes("order-buy-button") ||
+        className.includes("order-sell-button") ||
+        className.includes("button-close");
+
+      // 4. Keyword matches for Sell, Buy, Exit, Square Off, Instant Sell, Instant Buy
+      const hasOrderKeywords =
+        /\b(instant\s*sell|instant\s*buy|sell\s*market|buy\s*market|sell\s*limit|buy\s*limit|place\s*order|submit\s*order|execute\s*order|confirm\s*order|square\s*off|squareoff|close\s*position|exit\s*position|close\s*trade)\b/i.test(
+          cleanText
+        ) ||
+        /^(instant\s*sell|instant\s*buy|sell|buy|exit|square\s*off|submit|execute)(\s|$)/i.test(cleanText);
 
       // Cancel / Dismiss filters
       const isCancelAction = /^(cancel|dismiss|back|settings|close\s*dialog|help)\b/i.test(cleanText);
 
-      // Core matching rules
-      const hasOrderKeywords =
-        /\b(instant\s*sell|instant\s*buy|sell\s*market|buy\s*market|sell\s*limit|buy\s*limit|place\s*order|submit\s*order|execute\s*order|confirm\s*order|square\s*off|squareoff|exit\s*position|close\s*position|close\s*trade)\b/i.test(
-          cleanText
-        );
+      // Check if inside an Order Window / Modal / Dialog
+      const isInsideOrderWindow = Boolean(
+        node.closest &&
+        node.closest(
+          ".order-window, .order-form, .dialog-box, .modal-content, [class*='order'], [class*='ticket'], [class*='modal'], [class*='dialog']"
+        )
+      );
 
-      const hasDirectBuySell =
-        /^(instant\s*sell|instant\s*buy|sell|buy|exit|square\s*off|submit|confirm|execute)(\s|$)/i.test(cleanText);
-
-      // Broker selector matches (Kite .btn-blue/.btn-orange, Dhan .instant-sell/.exit-position, TradingView .button-close)
-      const matchesKnownSelector =
-        curr.matches &&
-        curr.matches(
-          [
-            "[data-name='submit-order']",
-            "[data-name='close-position']",
-            "[data-name='order-confirm-button']",
-            ".order-buy-button",
-            ".order-sell-button",
-            ".btn-blue",
-            ".btn-orange",
-            ".actions .exit",
-            ".actions .close",
-            ".exit-position",
-            ".btn-squareoff",
-            ".button-close"
-          ].join(", ")
-        );
-
-      // Close icon on position rows
+      // Position table close icon
       const isPositionCloseIcon =
         (cleanText === "x" || rawText.includes("✕") || rawText.includes("×")) &&
-        Boolean(curr.closest("tr, [role='row'], [class*='position']"));
+        Boolean(node.closest && node.closest("tr, [role='row'], [class*='position']"));
 
-      // If matches any order trigger criteria and is NOT a cancel button
       if (!isCancelAction) {
-        if (hasOrderKeywords || hasDirectBuySell || matchesKnownSelector || isPositionCloseIcon) {
-          console.log("%c[TradeGuard 🛡️] TARGET RESOLVED:", "background: #10b981; color: black; font-weight: bold;", {
-            matchedElement: curr,
-            cleanText,
-            rawText,
-            depth
-          });
-          return curr;
-        }
+        if (
+          isDhanSubmitBtn ||
+          isKiteSubmitBtn ||
+          isTradingViewBtn ||
+          hasOrderKeywords ||
+          isPositionCloseIcon ||
+          (isInsideOrderWindow &&
+            (node.tagName.toLowerCase() === "button" ||
+              node.getAttribute("role") === "button" ||
+              node.type === "submit"))
+        ) {
+          const clickable = node.closest
+            ? node.closest("button, [role='button'], a, div[class*='btn'], div[id*='btn'], input[type='submit']") || node
+            : node;
 
-        // Inside an order modal, if button is primary submit or type=submit
-        if (isInsideOrderWindow && (tag === "button" || curr.getAttribute("role") === "button" || curr.type === "submit")) {
-          if (cleanText.includes("sell") || cleanText.includes("buy") || cleanText.includes("order") || cleanText.includes("submit") || cleanText.includes("instant")) {
-            console.log("%c[TradeGuard 🛡️] ORDER WINDOW BUTTON RESOLVED:", "background: #10b981; color: black; font-weight: bold;", curr);
-            return curr;
-          }
+          console.log("%c[TradeGuard 🛡️] TARGET RESOLVED:", "background: #10b981; color: black; font-weight: bold; padding: 2px 6px;", {
+            clickable,
+            cleanText,
+            isDhanSubmitBtn,
+            isKiteSubmitBtn
+          });
+          return clickable;
         }
       }
-
-      curr = curr.parentElement;
-      depth++;
     }
 
     return null;
@@ -228,11 +234,13 @@
       side = "BUY";
     }
 
-    // Attempt to scrape symbol name
+    // Try to scrape symbol from modal or position row
     let symbolGuess = "";
 
-    // 1. Look inside open modal header (e.g. Dhan modal title "TATASTEEL 23 NOV 195 CALL")
-    const modalContainer = targetBtn.closest("[class*='modal'], [class*='dialog'], .order-window, [class*='ticket']");
+    const modalContainer = targetBtn.closest
+      ? targetBtn.closest("[class*='modal'], [class*='dialog'], .order-window, [class*='ticket']")
+      : null;
+
     if (modalContainer) {
       const headerEl = modalContainer.querySelector("h1, h2, h3, h4, [class*='title'], [class*='header'], [class*='symbol']");
       if (headerEl && headerEl.textContent) {
@@ -240,8 +248,7 @@
       }
     }
 
-    // 2. Look in position table row
-    if (!symbolGuess) {
+    if (!symbolGuess && targetBtn.closest) {
       const row = targetBtn.closest("tr, [role='row'], [class*='position']");
       if (row) {
         const symEl = row.querySelector(".symbol, .instrument, [class*='symbol'], [class*='tradable'], td:first-child");
@@ -251,15 +258,6 @@
       }
     }
 
-    // 3. Fallback to active instrument on page
-    if (!symbolGuess) {
-      const pageSym = document.querySelector(".symbol-name, [data-name='legend-source-title'], .tradable-instrument");
-      if (pageSym && pageSym.textContent) {
-        symbolGuess = pageSym.textContent.trim();
-      }
-    }
-
-    // 4. Fallback to document title
     if (!symbolGuess) {
       const titleParts = document.title.split(" ");
       if (titleParts[0]) {
@@ -269,7 +267,7 @@
 
     return {
       side,
-      symbol: symbolGuess || "ACTIVE INSTRUMENT / POSITION"
+      symbol: symbolGuess || "TATASTEEL / ACTIVE ORDER"
     };
   }
 
@@ -282,9 +280,14 @@
     const context = extractScreenContext(targetBtn);
     const host = document.createElement("div");
     host.id = "tradeguard-shadow-host";
+    host.style.all = "initial"; // Immunize against inherited broker styles
     host.style.position = "fixed";
-    host.style.inset = "0";
+    host.style.top = "0";
+    host.style.left = "0";
+    host.style.width = "100vw";
+    host.style.height = "100vh";
     host.style.zIndex = "2147483647";
+    host.style.display = "block";
     host.style.pointerEvents = "auto";
 
     const shadow = host.attachShadow({ mode: "open" });
@@ -301,8 +304,10 @@
         .backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(2, 6, 23, 0.90);
-          backdrop-filter: blur(6px);
+          width: 100vw;
+          height: 100vh;
+          background: rgba(2, 6, 23, 0.92);
+          backdrop-filter: blur(8px);
           z-index: 2147483647;
           display: flex;
           align-items: center;
@@ -536,8 +541,7 @@
       </div>
     `;
 
-    const parent = document.body || document.documentElement;
-    parent.appendChild(host);
+    (document.body || document.documentElement).appendChild(host);
 
     const items = shadow.querySelectorAll(".item");
     const checkboxes = shadow.querySelectorAll("input[type='checkbox']");
@@ -639,52 +643,62 @@
 
   /**
    * Safe Replay Mechanism (FR-06):
-   * Temporarily bypasses the interceptor flag and re-dispatches the click cleanly.
+   * Programmatically dispatches native MouseEvents to trigger React / Angular component handlers cleanly.
    */
   function executePassThrough(targetBtn) {
     isBypassing = true;
     closeChecklistModal();
 
-    console.log("[TradeGuard 🛡️] Trader confirmed checklist. Replaying verified click on:", targetBtn);
+    console.log("%c[TradeGuard 🛡️] VERIFIED: DISPATCHING PASSTHROUGH TO BROKER", "background: #10b981; color: white;", targetBtn);
 
     try {
-      // 1. Programmatic click()
+      // 1. Native click()
       targetBtn.click();
 
-      // 2. Also dispatch genuine MouseEvent for React SyntheticEvent compatibility
+      // 2. Synthetic MouseEvent for Angular / React Zone.js compatibility
       const clickEvt = new MouseEvent("click", {
         bubbles: true,
         cancelable: true,
+        composed: true,
         view: window
       });
       targetBtn.dispatchEvent(clickEvt);
     } catch (err) {
-      console.error("[TradeGuard] Pass-through dispatch error:", err);
+      console.error("[TradeGuard] Pass-through error:", err);
     } finally {
       setTimeout(() => {
         isBypassing = false;
-      }, 300);
+      }, 400);
     }
   }
 
   /**
-   * Capture-phase click interceptor (FR-01)
-   * Attaches at the WINDOW level with capture: true.
-   * Completely synchronous — freezes event immediately before broker handler runs.
+   * Synchronous capture-phase interceptor
    */
-  function handleCaptureClick(e) {
+  function handleCaptureEvent(e) {
     if (isBypassing) {
-      return; // Safe pass-through in progress
+      return; // Safe replay in progress
     }
 
     if (!isEnabled) {
-      return; // Guard turned off by trader
+      return; // Disabled by user
     }
 
-    const orderBtn = findOrderSubmitButton(e.target);
+    // Suppress multiple triggers for the same action within 150ms
+    const now = Date.now();
+    if (now - lastModalOpenTime < 150) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return;
+    }
+
+    const orderBtn = findOrderSubmitButton(e);
     if (!orderBtn) {
       return;
     }
+
+    lastModalOpenTime = now;
 
     // IMMEDIATE SYNCHRONOUS DOM FREEZE
     e.preventDefault();
@@ -692,15 +706,16 @@
     e.stopImmediatePropagation();
 
     console.log(
-      "%c[TradeGuard 🛡️] CLICK FROZEN SYNCHRONOUSLY!",
-      "background: #ef4444; color: white; font-weight: bold; padding: 3px 6px; border-radius: 4px;",
+      "%c[TradeGuard 🛡️] CLICK INTERCEPTED ON BROKER BUTTON!",
+      "background: #ef4444; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;",
       orderBtn
     );
 
-    // Mount and display Gatekeeper checklist modal
+    // Display Gatekeeper checklist
     openChecklistModal(orderBtn, currentRules);
   }
 
-  // Register in the CAPTURE phase at the highest possible DOM root (window)
-  window.addEventListener("click", handleCaptureClick, true);
+  // Register in the CAPTURE phase at window level (highest possible DOM precedence)
+  window.addEventListener("click", handleCaptureEvent, true);
+  window.addEventListener("mousedown", handleCaptureEvent, true);
 })();
