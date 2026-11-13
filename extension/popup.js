@@ -12,12 +12,6 @@ const addRuleBtn = document.getElementById("addRuleBtn");
 const rulesList = document.getElementById("rulesList");
 const emptyNotice = document.getElementById("emptyNotice");
 
-const planBadge = document.getElementById("planBadge");
-const accountBtn = document.getElementById("accountBtn");
-const planStrip = document.getElementById("planStrip");
-const planStripText = document.getElementById("planStripText");
-const stripUpgradeBtn = document.getElementById("stripUpgradeBtn");
-
 const capitalInput = document.getElementById("capitalInput");
 const maxRiskInput = document.getElementById("maxRiskInput");
 const cooldownSelect = document.getElementById("cooldownSelect");
@@ -29,20 +23,8 @@ const clearJournalBtn = document.getElementById("clearJournalBtn");
 
 const tabButtons = document.querySelectorAll(".tab-btn");
 const tabContents = document.querySelectorAll(".tab-content");
-
-// Modal Elements
-const upgradeModal = document.getElementById("upgradeModal");
-const closeUpgradeModal = document.getElementById("closeUpgradeModal");
-const activateProBtn = document.getElementById("activateProBtn");
-const downgradeFreeBtn = document.getElementById("downgradeFreeBtn");
-const googleSignInBtn = document.getElementById("googleSignInBtn");
-const authStatusText = document.getElementById("authStatusText");
-const googleBtnText = document.getElementById("googleBtnText");
-const emailInput = document.getElementById("emailInput");
 const toastBanner = document.getElementById("toastBanner");
 
-let currentPlan = "free";
-let currentUserEmail = null;
 let currentRulesState = DEFAULT_RULES;
 let toastTimer = null;
 let confirmClearTimer = null;
@@ -54,7 +36,7 @@ function showToast(msg, isWarn = false) {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toastBanner.classList.remove("show");
-  }, 3500);
+  }, 3200);
 }
 
 // Tab Switching
@@ -78,70 +60,6 @@ function updateToggleLabelState(isActive) {
   }
 }
 
-function updatePlanUI(plan, email) {
-  currentPlan = plan || "free";
-  currentUserEmail = email || null;
-
-  if (plan === "pro") {
-    if (planBadge) {
-      planBadge.textContent = "👑 Pro";
-      planBadge.className = "plan-badge pro";
-    }
-    if (accountBtn) {
-      accountBtn.innerHTML = "👑 Pro Active";
-      accountBtn.style.color = "#fbbf24";
-      accountBtn.style.borderColor = "#f59e0b";
-    }
-    if (planStrip) {
-      planStrip.className = "plan-strip pro";
-      planStripText.innerHTML = "👑 Pro Trader: <strong>Unlimited Rules Unlocked</strong>";
-      if (stripUpgradeBtn) stripUpgradeBtn.style.display = "none";
-    }
-    if (activateProBtn) {
-      activateProBtn.textContent = "✓ Pro Plan Active";
-      activateProBtn.style.opacity = "0.7";
-      activateProBtn.disabled = true;
-    }
-    if (downgradeFreeBtn) {
-      downgradeFreeBtn.style.display = "block";
-    }
-  } else {
-    if (planBadge) {
-      planBadge.textContent = "Free";
-      planBadge.className = "plan-badge free";
-    }
-    if (accountBtn) {
-      accountBtn.innerHTML = "👑 Upgrade";
-      accountBtn.style.color = "#cbd5e1";
-      accountBtn.style.borderColor = "#334155";
-    }
-    if (planStrip) {
-      planStrip.className = "plan-strip";
-      planStripText.innerHTML = "Free Plan: <strong>3 Rules max</strong>";
-      if (stripUpgradeBtn) stripUpgradeBtn.style.display = "block";
-    }
-    if (activateProBtn) {
-      activateProBtn.textContent = "⭐ Activate Pro License (Instant)";
-      activateProBtn.style.opacity = "1";
-      activateProBtn.disabled = false;
-    }
-    if (downgradeFreeBtn) {
-      downgradeFreeBtn.style.display = "none";
-    }
-  }
-
-  // Update Auth box
-  if (currentUserEmail) {
-    if (authStatusText) authStatusText.textContent = `Signed in as: ${currentUserEmail}`;
-    if (emailInput) emailInput.style.display = "none";
-    if (googleBtnText) googleBtnText.textContent = "Sign Out";
-  } else {
-    if (authStatusText) authStatusText.textContent = "Sign in to sync your rules & unlock Pro features across devices";
-    if (emailInput) emailInput.style.display = "block";
-    if (googleBtnText) googleBtnText.textContent = "Continue with Google";
-  }
-}
-
 function renderRules(rules) {
   currentRulesState = rules || [];
   rulesList.innerHTML = "";
@@ -153,11 +71,11 @@ function renderRules(rules) {
 
   rules.forEach((rule, index) => {
     const li = document.createElement("li");
-    
+
     const span = document.createElement("span");
     span.className = "rule-text";
     span.textContent = `${index + 1}. ${rule}`;
-    
+
     const delBtn = document.createElement("button");
     delBtn.textContent = "×";
     delBtn.className = "del-btn";
@@ -180,10 +98,7 @@ function renderJournal(trades) {
     return;
   }
 
-  // If free plan, show last 5 trades
-  const displayTrades = currentPlan === "pro" ? trades : trades.slice(-5);
-
-  displayTrades.slice().reverse().forEach(t => {
+  trades.slice().reverse().forEach(t => {
     const item = document.createElement("div");
     item.className = "journal-item";
     const sideClass = t.side === "BUY" ? "badge-buy" : "badge-sell";
@@ -213,9 +128,7 @@ function loadData(callback) {
       maxRiskPercent: 1.0,
       cooldownMinutes: 3,
       maxTradesPerDay: 5,
-      tradeJournal: [],
-      userPlan: "free",
-      userEmail: null
+      tradeJournal: []
     }, callback);
   } else {
     callback({
@@ -225,9 +138,7 @@ function loadData(callback) {
       maxRiskPercent: Number(localStorage.getItem("tradeguard_maxrisk") || "1.0"),
       cooldownMinutes: Number(localStorage.getItem("tradeguard_cooldown") || "3"),
       maxTradesPerDay: Number(localStorage.getItem("tradeguard_maxtrades") || "5"),
-      tradeJournal: JSON.parse(localStorage.getItem("tradeguard_journal") || "[]"),
-      userPlan: localStorage.getItem("tradeguard_plan") || "free",
-      userEmail: localStorage.getItem("tradeguard_email") || null
+      tradeJournal: JSON.parse(localStorage.getItem("tradeguard_journal") || "[]")
     });
   }
 }
@@ -243,67 +154,8 @@ function saveData(data, callback) {
     if (data.cooldownMinutes !== undefined) localStorage.setItem("tradeguard_cooldown", String(data.cooldownMinutes));
     if (data.maxTradesPerDay) localStorage.setItem("tradeguard_maxtrades", String(data.maxTradesPerDay));
     if (data.tradeJournal) localStorage.setItem("tradeguard_journal", JSON.stringify(data.tradeJournal));
-    if (data.userPlan) localStorage.setItem("tradeguard_plan", data.userPlan);
-    if (data.userEmail !== undefined) localStorage.setItem("tradeguard_email", data.userEmail || "");
     if (callback) callback();
   }
-}
-
-// Modal open/close
-function openModal() {
-  if (upgradeModal) upgradeModal.classList.add("open");
-}
-function closeModal() {
-  if (upgradeModal) upgradeModal.classList.remove("open");
-}
-
-if (accountBtn) accountBtn.onclick = openModal;
-if (planBadge) planBadge.onclick = openModal;
-if (stripUpgradeBtn) stripUpgradeBtn.onclick = openModal;
-if (closeUpgradeModal) closeUpgradeModal.onclick = closeModal;
-
-// Activate Pro License
-if (activateProBtn) {
-  activateProBtn.onclick = () => {
-    const email = (emailInput && emailInput.value.trim()) || currentUserEmail || "trader@tradeguard.app";
-    saveData({ userPlan: "pro", userEmail: email }, () => {
-      updatePlanUI("pro", email);
-      renderJournal(tradeJournal);
-      closeModal();
-      showToast("🎉 Pro unlocked! Unlimited rules & custom cooldowns active.");
-    });
-  };
-}
-
-// Downgrade to Free Tier (for test purposes)
-if (downgradeFreeBtn) {
-  downgradeFreeBtn.onclick = () => {
-    saveData({ userPlan: "free" }, () => {
-      updatePlanUI("free", currentUserEmail);
-      renderJournal(tradeJournal);
-      closeModal();
-      showToast("Switched back to Free Tier (3 rules max).", true);
-    });
-  };
-}
-
-// Inline Sign-In without native prompt()
-if (googleSignInBtn) {
-  googleSignInBtn.onclick = () => {
-    if (currentUserEmail) {
-      saveData({ userEmail: null, userPlan: "free" }, () => {
-        updatePlanUI("free", null);
-        showToast("Signed out safely.", true);
-      });
-    } else {
-      const typedEmail = emailInput ? emailInput.value.trim() : "";
-      const email = typedEmail && typedEmail.includes("@") ? typedEmail : "trader@tradeguard.app";
-      saveData({ userEmail: email }, () => {
-        updatePlanUI(currentPlan, email);
-        showToast(`Signed in as ${email}`);
-      });
-    }
-  };
 }
 
 // Initial load
@@ -313,7 +165,6 @@ loadData((data) => {
     guardEnabledEl.checked = data.enabled !== false;
     updateToggleLabelState(guardEnabledEl.checked);
   }
-  updatePlanUI(data.userPlan || "free", data.userEmail);
   renderRules(data.rules || DEFAULT_RULES);
 
   if (capitalInput) capitalInput.value = data.capital || 200000;
@@ -329,6 +180,7 @@ loadData((data) => {
 guardEnabledEl.addEventListener("change", () => {
   saveData({ enabled: guardEnabledEl.checked });
   updateToggleLabelState(guardEnabledEl.checked);
+  showToast(guardEnabledEl.checked ? "TradeGuard active on trading sites." : "TradeGuard paused.", !guardEnabledEl.checked);
 });
 
 capitalInput.addEventListener("change", () => {
@@ -343,18 +195,13 @@ maxRiskInput.addEventListener("change", () => {
 
 cooldownSelect.addEventListener("change", () => {
   const val = parseInt(cooldownSelect.value, 10) || 0;
-  if (currentPlan === "free" && (val === 1 || val === 5)) {
-    cooldownSelect.value = "3";
-    showToast("1m & 5m cooldowns require TradeGuard Pro.", true);
-    openModal();
-    return;
-  }
   saveData({ cooldownMinutes: val });
-  showToast("Cooldown timer updated.");
+  showToast(val === 0 ? "Cooldown disabled." : `Cooldown set to ${val} min.`);
 });
 
 maxTradesInput.addEventListener("change", () => {
   saveData({ maxTradesPerDay: parseInt(maxTradesInput.value, 10) || 5 });
+  showToast("Daily trades cap updated.");
 });
 
 function handleAddRule() {
@@ -363,17 +210,7 @@ function handleAddRule() {
 
   loadData((data) => {
     const current = data.rules || [];
-    const plan = data.userPlan || "free";
 
-    // Free tier: max 3 rules
-    if (plan === "free" && current.length >= 3) {
-      newRuleInput.value = "";
-      showToast("Free Plan allows max 3 rules. Upgrade to Pro!", true);
-      openModal();
-      return;
-    }
-
-    // Pro tier: max 20 rules
     if (current.length >= 20) {
       showToast("Maximum of 20 active rules reached.", true);
       return;
@@ -383,6 +220,7 @@ function handleAddRule() {
     saveData({ rules: updated }, () => {
       newRuleInput.value = "";
       renderRules(updated);
+      showToast(`Rule #${updated.length} added.`);
     });
   });
 }

@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Shield, X, AlertTriangle, ArrowRight, Calculator, Tag, Sparkles, Crown } from 'lucide-react';
-import { InterceptedOrderContext, UserPlanTier } from '../types';
+import { Shield, X, ArrowRight, Calculator } from 'lucide-react';
+import { InterceptedOrderContext } from '../types';
 
 interface GatekeeperModalProps {
   orderContext: InterceptedOrderContext;
   rules: string[];
   capital?: number;
   maxRiskPercent?: number;
-  userPlan?: UserPlanTier;
   onConfirm: (extraDetails?: { stopLoss: number; strategy: string; mindset: string }) => void;
   onAbort: () => void;
   onRuleToggled?: (ruleIndex: number, checked: boolean) => void;
@@ -18,13 +17,11 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
   rules,
   capital = 200000,
   maxRiskPercent = 1.0,
-  userPlan = 'free',
   onConfirm,
   onAbort,
   onRuleToggled
 }) => {
-  const isPro = userPlan === 'pro';
-  const effectiveRules = isPro ? rules : rules.slice(0, 3);
+  const effectiveRules = rules.slice(0, 20);
 
   const [checkedState, setCheckedState] = useState<boolean[]>(() =>
     new Array(effectiveRules.length).fill(false)
@@ -126,13 +123,6 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
                 <h3 className="text-sm font-bold text-sky-400 leading-none">
                   TradeGuard Gatekeeper
                 </h3>
-                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
-                  isPro
-                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                    : 'bg-slate-800 text-slate-400 border-slate-700'
-                }`}>
-                  {isPro ? '👑 PRO' : 'FREE'}
-                </span>
               </div>
               <span className="text-[10px] text-slate-400">Pre-Trade Discipline Interceptor</span>
             </div>
@@ -239,12 +229,6 @@ export const GatekeeperModal: React.FC<GatekeeperModalProps> = ({
 
         {/* Checklist */}
         <div className="space-y-2 mb-4">
-          {!isPro && rules.length > 3 && (
-            <div className="text-[10.5px] text-amber-400 bg-amber-950/30 border border-amber-500/30 p-2 rounded flex items-center justify-between">
-              <span>Free Tier: Verifying 3 of {rules.length} rules</span>
-              <span className="font-semibold text-[10px]">Upgrade to verify all</span>
-            </div>
-          )}
           {effectiveRules.map((rule, idx) => {
             const isChecked = checkedState[idx];
             return (

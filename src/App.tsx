@@ -13,10 +13,9 @@ import {
   BrokerTerminalType,
   InterceptedOrderContext,
   InterceptionLogEvent,
-  TradeJournalEntry,
-  UserPlanTier
+  TradeJournalEntry
 } from './types';
-import { Shield, Sparkles, AlertCircle, CheckCircle, ExternalLink, Clock, Crown } from 'lucide-react';
+import { Shield, Sparkles, AlertCircle, CheckCircle, ExternalLink, Clock } from 'lucide-react';
 
 const INITIAL_RULES = [
   "Is my Stop-Loss strictly defined and entered?",
@@ -43,23 +42,6 @@ export default function App() {
       return localStorage.getItem('tradeguard_enabled') !== 'false';
     } catch {
       return true;
-    }
-  });
-
-  // User Plan & Account State (Free vs Pro)
-  const [userPlan, setUserPlan] = useState<UserPlanTier>(() => {
-    try {
-      return (localStorage.getItem('tradeguard_plan') as UserPlanTier) || 'free';
-    } catch {
-      return 'free';
-    }
-  });
-
-  const [userEmail, setUserEmail] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem('tradeguard_email') || null;
-    } catch {
-      return null;
     }
   });
 
@@ -137,14 +119,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('tradeguard_enabled', isGuardEnabled ? 'true' : 'false');
   }, [isGuardEnabled]);
-
-  useEffect(() => {
-    localStorage.setItem('tradeguard_plan', userPlan);
-  }, [userPlan]);
-
-  useEffect(() => {
-    localStorage.setItem('tradeguard_email', userEmail || '');
-  }, [userEmail]);
 
   useEffect(() => {
     localStorage.setItem('tradeguard_capital', String(capital));
@@ -525,10 +499,6 @@ export default function App() {
             setMaxTradesPerDay={setMaxTradesPerDay}
             tradeJournal={tradeJournal}
             onClearJournal={handleClearJournal}
-            userPlan={userPlan}
-            setUserPlan={setUserPlan}
-            userEmail={userEmail}
-            setUserEmail={setUserEmail}
           />
         )}
 
@@ -554,7 +524,6 @@ export default function App() {
           rules={rules}
           capital={capital}
           maxRiskPercent={maxRiskPercent}
-          userPlan={userPlan}
           onConfirm={handleConfirmOrder}
           onAbort={handleAbortOrder}
           onRuleToggled={handleRuleToggled}

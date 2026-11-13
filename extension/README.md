@@ -1,16 +1,16 @@
-# TradeGuard v1.2.2 — Pre-Trade Discipline & Behavioral Seatbelt
+# TradeGuard v1.2.3 — Pre-Trade Discipline & Behavioral Seatbelt
 
-> **Zero-API, 100% Client-Side Pre-Trade Gatekeeper for Web Trading Terminals**  
-> Strictly active ONLY on supported trading sites: **TradingView**, **Dhan / ScanX**, **Zerodha Kite**, **ICICI Direct**, **SBI Securities / SBI Smart**, **Groww**, **Sahi**, **Fyers**, **Upstox**, **Angel One**, **Kotak Neo**, **HDFC Sky / HDFC Sec**, **Motilal Oswal**, **5paisa**, **Sharekhan**, **Axis Direct**, **AliceBlue**, **Paytm Money**, **Sensibull**, **Shoonya**, **Flattrade**, **m.Stock**, **Samco**, **Definedge**, **Delta Exchange**, and **CoinDCX** — never runs on general websites.
+> **Zero-API, 100% Client-Side Pre-Trade Gatekeeper for Web Trading Terminals (All Features Unlocked Free)**  
+> Strictly active ONLY on supported trading terminal URLs: **TradingView (`/chart`)**, **Dhan / ScanX**, **Zerodha Kite**, **ICICI Direct**, **SBI Securities / SBI Smart**, **Groww (`/stocks`, `/futures-and-options`)**, **Sahi**, **Fyers**, **Upstox**, **Angel One**, **Kotak Neo**, **HDFC Sky / HDFC Sec**, **Motilal Oswal**, **5paisa**, **Sharekhan**, **Axis Direct**, **AliceBlue**, **Paytm Money**, **Sensibull**, **Shoonya**, **Flattrade**, **m.Stock**, **Samco**, **Definedge**, **Delta Exchange**, and **CoinDCX** — never runs on general websites or broker marketing homepages.
 
 ---
 
 ## ⚡ Key Features at a Glance
 
 ### 1. 🛡️ Pre-Trade Checklist Gatekeeper (DOM Interception)
-- Intercepts order buttons (**Buy**, **Instant Sell**, **Square Off**, **Close Position**) using browser event capture (`useCapture: true`).
+- Intercepts order buttons (**Buy**, **Instant Sell**, **Place Order**, **Square Off**, **Close Position**) using browser event capture (`useCapture: true`).
 - Pauses order execution at the browser level *before* any broker payload is dispatched.
-- Free Tier verifies up to 3 core rules; **Pro Tier** unlocks unlimited custom rules (up to 20).
+- Supports up to **20 custom pre-trade rules** completely free.
 
 ### 2. 🧮 Live 1% Risk Sizing Calculator
 - Automatically scrapes current order price and lot quantity from the terminal ticket without broker APIs.
@@ -20,7 +20,7 @@
 
 ### 3. 🧘 Anti-Revenge Cooling-Off Breaker
 - Triggered automatically whenever you exit or square-off an open position.
-- Enforces a cooling-off breathing period with a visual breathing circle (Standard 3 mins on Free; custom timers on Pro).
+- Enforces a configurable cooling-off breathing period (`1m`, `3m`, or `5m`) with a visual breathing circle — free for all users.
 - Blocks immediate emotional tilt or impulse re-entries. Press `Esc` or click *"I'm Calm, Dismiss"* when ready.
 
 ### 4. 🏷️ 1-Click Strategy & Mindset Tagging
@@ -34,10 +34,10 @@
 
 ### 6. ℹ️ In-Extension Feature Guide & Help
 - **From Toolbar Popup**: Click the **Guide ℹ️** tab in the extension popup to view feature explanations and keyboard cheat sheets.
-- **Directly on Trading Charts**: Click the floating **TradeGuard v1.2** status pill at the bottom-right of your trading terminal to view the full interactive feature guide without leaving your chart!
+- **Directly on Trading Charts**: Click the floating **TradeGuard v1.2.3** status pill at the bottom-right of your trading terminal to view the full interactive feature guide without leaving your chart!
 
 ### 7. 🚀 60 FPS Performance & Trading-Only Isolation
-- **Trading-Sites Only**: Restricted via Chrome Manifest V3 `matches` and runtime hostname checks so it never interferes with Gmail, Google, YouTube, or general browsing.
+- **Trading-Sites Only**: Restricted via Chrome Manifest V3 `matches` and runtime hostname/path checks so it never runs on Gmail, Google, YouTube, general browsing, or broker marketing homepages.
 - **Sub-Microsecond Canvas Bypass**: Single-line check (`if (e.target.tagName === 'CANVAS') return;`) keeps chart panning and zooming at 60 FPS with zero lag (<0.002ms).
 - **Zero API Keys & Zero External Telemetry**: 100% local client-side storage. Your trading data never leaves your computer.
 

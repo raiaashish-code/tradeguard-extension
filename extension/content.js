@@ -47,7 +47,10 @@
   ];
 
   // Non-trading paths on multi-purpose broker domains (blogs, calculators, MF, etc.)
-  const NON_TRADING_PATH_REGEX = /^\/(blog|blogs|learn|academy|calculators?|mutual-funds?|sip|loans?|insurance|credit-cards?|careers|about|contact|pricing|help|support|faq|news)(\/|$)/i;
+  const NON_TRADING_PATH_REGEX = /^\/(blog|blogs|learn|academy|calculators?|mutual-funds?|sip|loans?|insurance|credit-cards?|careers|about|contact|pricing|help|support|faq|news|ideas|scripts|markets|screener)(\/|$)/i;
+
+  // Trading paths required when user is on a root or www. broker domain
+  const ROOT_TRADING_PATH_REGEX = /^\/(chart|charts|trade|terminal|stocks|futures-and-options|indices|commodities|orders|positions|portfolio|watchlist|option-chain|options|futures|fno|equity|commodity|app)(\/|$)/i;
 
   function isTradingTerminalSite() {
     try {
@@ -60,21 +63,22 @@
       );
       if (!isAllowedHost) return false;
 
-      // Dedicated trading subdomains are always active
-      const isDedicatedTerminalSubdomain = /^(web|trade|pro|tv|kite|ant|neo|secure|ttweb|india|online|app)\./i.test(host);
-      if (isDedicatedTerminalSubdomain) return true;
-
-      // On root/www broker sites, skip obvious marketing/blog/mutual-fund pages
+      // Always skip obvious non-trading paths
       if (NON_TRADING_PATH_REGEX.test(pathname)) {
         return false;
       }
 
-      // On Angel One www root, require /trade
-      if (host === "www.angelone.in" && !pathname.startsWith("/trade")) {
-        return false;
+      // On TradingView, require /chart or /trading (or tv.* subdomain)
+      if (host.endsWith("tradingview.com") && !host.startsWith("tv.")) {
+        return /^\/(chart|trading)(\/|$)/i.test(pathname);
       }
 
-      return true;
+      // Dedicated broker trading subdomains are active
+      const isDedicatedTerminalSubdomain = /^(web|trade|pro|tv|kite|ant|neo|nt|secure|ttweb|india|online|app|newtrade|opstra|terminal|charts|desk|plus|live|my)\./i.test(host);
+      if (isDedicatedTerminalSubdomain) return true;
+
+      // On root/www multi-purpose broker sites, require an explicit trading/order path
+      return ROOT_TRADING_PATH_REGEX.test(pathname);
     } catch (_) {
       return false;
     }
@@ -98,7 +102,6 @@
   let maxTradesPerDay = 5;
   let cooldownUntil = 0;
   let tradeJournal = [];
-  let userPlan = "free";
 
   let isBypassing = false;
   let activeModalHost = null;
@@ -107,7 +110,7 @@
   let suppressedBrokerElements = [];
 
   console.log(
-    "%c[TradeGuard 🛡️ v1.2.2] ACTIVE ON TRADING TERMINAL",
+    "%c[TradeGuard 🛡️ v1.2.3] ACTIVE ON TRADING TERMINAL",
     "background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px;"
   );
 
@@ -123,8 +126,7 @@
           cooldownMinutes: 3,
           maxTradesPerDay: 5,
           cooldownUntil: 0,
-          tradeJournal: [],
-          userPlan: "free"
+          tradeJournal: []
         }, (data) => {
           if (data) {
             if (Array.isArray(data.rules) && data.rules.length > 0) currentRules = data.rules;
@@ -135,7 +137,6 @@
             if (typeof data.maxTradesPerDay === "number") maxTradesPerDay = data.maxTradesPerDay;
             if (typeof data.cooldownUntil === "number") cooldownUntil = data.cooldownUntil;
             if (Array.isArray(data.tradeJournal)) tradeJournal = data.tradeJournal;
-            if (data.userPlan) userPlan = data.userPlan;
           }
         });
 
@@ -149,7 +150,6 @@
             if (changes.maxTradesPerDay && typeof changes.maxTradesPerDay.newValue === "number") maxTradesPerDay = changes.maxTradesPerDay.newValue;
             if (changes.cooldownUntil && typeof changes.cooldownUntil.newValue === "number") cooldownUntil = changes.cooldownUntil.newValue;
             if (changes.tradeJournal && Array.isArray(changes.tradeJournal.newValue)) tradeJournal = changes.tradeJournal.newValue;
-            if (changes.userPlan && changes.userPlan.newValue) userPlan = changes.userPlan.newValue;
           }
         });
       }
@@ -191,7 +191,7 @@
 
     pill.innerHTML = `
       <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981;"></span>
-      <span>TradeGuard v1.2</span>
+      <span>TradeGuard v1.2.3</span>
     `;
 
     pill.title = "Click to view TradeGuard Feature Guide & Shortcuts";
@@ -1095,8 +1095,8 @@
       return;
     }
 
-    // Display Gatekeeper checklist (Free tier verifies up to 3 rules; Pro verifies all)
-    const effectiveRules = userPlan === "pro" ? currentRules : currentRules.slice(0, 3);
+    // Display Gatekeeper checklist (All rules unlocked free during launch)
+    const effectiveRules = currentRules.slice(0, 20);
     openChecklistModal(orderBtn, effectiveRules);
   }
 
