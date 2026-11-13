@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Github className="w-3.5 h-3.5" />
-            <span>GitHub Setup</span>
+            <span>Web Store &amp; GitHub</span>
           </button>
         </nav>
 
