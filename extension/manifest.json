@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "TradeGuard — Pre-Trade Discipline Checklist",
   "version": "1.2.3",
-  "description": "Zero-API pre-trade checklist gatekeeper that prevents emotional impulse orders and unplanned position exits strictly on web trading terminals.",
+  "description": "Zero-API pre-trade checklist & 1% risk gatekeeper that prevents impulse orders on supported web trading terminals.",
   "permissions": ["storage"],
   "action": {
     "default_popup": "popup.html",
