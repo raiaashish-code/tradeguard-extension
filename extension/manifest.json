@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TradeGuard — Pre-Trade Discipline Checklist",
-  "version": "1.2.0",
-  "description": "Zero-API pre-trade checklist gatekeeper that prevents emotional impulse orders and unplanned position exits.",
+  "version": "1.2.1",
+  "description": "Zero-API pre-trade checklist gatekeeper that prevents emotional impulse orders and unplanned position exits on web trading terminals.",
   "permissions": ["storage"],
   "action": {
     "default_popup": "popup.html",
@@ -11,7 +11,17 @@
   "content_scripts": [
     {
       "matches": [
-        "<all_urls>"
+        "https://*.dhan.co/*",
+        "https://kite.zerodha.com/*",
+        "https://*.tradingview.com/*",
+        "https://pro.upstox.com/*",
+        "https://tv.upstox.com/*",
+        "https://trade.fyers.in/*",
+        "https://trade.angelone.in/*",
+        "https://www.angelone.in/trade/*",
+        "https://web.sensibull.com/*",
+        "https://ant.aliceblueonline.com/*",
+        "https://trade.paytmmoney.com/*"
       ],
       "all_frames": true,
       "js": ["content.js"],

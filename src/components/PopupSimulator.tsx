@@ -559,10 +559,10 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
 
               <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
                 <div className="font-bold text-sky-400 mb-1 flex items-center gap-1.5">
-                  <span>🔒 Privacy &amp; Zero Lag</span>
+                  <span>🔒 Trading-Sites Only &amp; Zero Lag</span>
                 </div>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Zero broker API keys or passwords. Zero tracking servers. Sub-microsecond canvas bypass (<code className="font-mono text-sky-300">&lt;0.002ms</code>) ensures charts run at 60 FPS.
+                  Runs strictly on trading platforms (Dhan, Kite, TradingView, Upstox, Fyers, Angel One) — never on general sites. Sub-microsecond canvas bypass (<code className="font-mono text-sky-300">&lt;0.002ms</code>) keeps charts at 60 FPS.
                 </p>
               </div>
             </div>
@@ -572,7 +572,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
           <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-500 text-center flex items-center justify-between font-mono">
             <span className="flex items-center gap-1">
               <HardDrive className="w-3 h-3 text-slate-400" />
-              <span>100% Client-Side</span>
+              <span>Trading Terminals Only</span>
             </span>
             <span className={isPro ? 'text-amber-400 font-bold' : 'text-slate-400'}>
               {isPro ? '👑 Pro Active' : 'Free Tier'}

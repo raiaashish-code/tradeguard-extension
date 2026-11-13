@@ -13,6 +13,41 @@
  */
 
 (function () {
+  // Strictly operate ONLY on supported web trading terminal domains
+  const ALLOWED_TRADING_DOMAINS = [
+    "dhan.co",
+    "kite.zerodha.com",
+    "tradingview.com",
+    "pro.upstox.com",
+    "tv.upstox.com",
+    "trade.fyers.in",
+    "trade.angelone.in",
+    "angelone.in",
+    "web.sensibull.com",
+    "ant.aliceblueonline.com",
+    "trade.paytmmoney.com"
+  ];
+
+  function isTradingTerminalSite() {
+    try {
+      const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase();
+      if (!host) return false;
+      // If Angel One marketing homepage (not /trade/), skip
+      if (host === "www.angelone.in" && !window.location.pathname.startsWith("/trade")) {
+        return false;
+      }
+      return ALLOWED_TRADING_DOMAINS.some(
+        (domain) => host === domain || host.endsWith("." + domain)
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  if (!isTradingTerminalSite()) {
+    return;
+  }
+
   const DEFAULT_RULES = [
     "Is my Stop-Loss strictly defined and entered?",
     "Am I risking less than 1% of total capital?",
@@ -36,7 +71,7 @@
   let suppressedBrokerElements = [];
 
   console.log(
-    "%c[TradeGuard 🛡️ v1.2.0] ACTIVE ON THIS TAB",
+    "%c[TradeGuard 🛡️ v1.2.1] ACTIVE ON TRADING TERMINAL",
     "background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px;"
   );
 
@@ -120,7 +155,7 @@
 
     pill.innerHTML = `
       <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981;"></span>
-      <span>TradeGuard v1.1</span>
+      <span>TradeGuard v1.2</span>
     `;
 
     pill.title = "Click to view TradeGuard Feature Guide & Shortcuts";
@@ -833,7 +868,7 @@
         riskBadge.className = "risk-badge danger";
         riskBadge.textContent = `⚠️ ₹${totalRisk} Risk (${pctOfCapital}% > ${maxRiskPercent}%)`;
       }
-      return { totalRisk, pctOfCapital: parseFloat(pctOfCapital) };
+      return { sl, totalRisk, pctOfCapital: parseFloat(pctOfCapital) };
     }
     updateRiskCalculation();
     slInput.addEventListener("input", updateRiskCalculation);
@@ -1024,8 +1059,9 @@
       return;
     }
 
-    // Display Gatekeeper checklist
-    openChecklistModal(orderBtn, currentRules);
+    // Display Gatekeeper checklist (Free tier verifies up to 3 rules; Pro verifies all)
+    const effectiveRules = userPlan === "pro" ? currentRules : currentRules.slice(0, 3);
+    openChecklistModal(orderBtn, effectiveRules);
   }
 
   window.addEventListener("click", handleCaptureClick, true);
