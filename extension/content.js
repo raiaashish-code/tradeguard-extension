@@ -15,30 +15,66 @@
 (function () {
   // Strictly operate ONLY on supported web trading terminal domains
   const ALLOWED_TRADING_DOMAINS = [
-    "dhan.co",
-    "kite.zerodha.com",
     "tradingview.com",
-    "pro.upstox.com",
-    "tv.upstox.com",
-    "trade.fyers.in",
-    "trade.angelone.in",
+    "dhan.co",
+    "scanx.trade",
+    "kite.zerodha.com",
+    "upstox.com",
+    "fyers.in",
+    "groww.in",
+    "sahi.com",
+    "icicidirect.com",
+    "sbisecurities.in",
+    "sbismart.com",
     "angelone.in",
-    "web.sensibull.com",
-    "ant.aliceblueonline.com",
-    "trade.paytmmoney.com"
+    "kotaksecurities.com",
+    "hdfcsky.com",
+    "hdfcsec.com",
+    "motilaloswal.com",
+    "5paisa.com",
+    "aliceblueonline.com",
+    "paytmmoney.com",
+    "sensibull.com",
+    "shoonya.com",
+    "flattrade.in",
+    "mstock.com",
+    "sharekhan.com",
+    "samco.in",
+    "axisdirect.in",
+    "definedge.com",
+    "delta.exchange",
+    "coindcx.com"
   ];
+
+  // Non-trading paths on multi-purpose broker domains (blogs, calculators, MF, etc.)
+  const NON_TRADING_PATH_REGEX = /^\/(blog|blogs|learn|academy|calculators?|mutual-funds?|sip|loans?|insurance|credit-cards?|careers|about|contact|pricing|help|support|faq|news)(\/|$)/i;
 
   function isTradingTerminalSite() {
     try {
       const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase();
+      const pathname = (window.location && window.location.pathname ? window.location.pathname : "/").toLowerCase();
       if (!host) return false;
-      // If Angel One marketing homepage (not /trade/), skip
-      if (host === "www.angelone.in" && !window.location.pathname.startsWith("/trade")) {
-        return false;
-      }
-      return ALLOWED_TRADING_DOMAINS.some(
+
+      const isAllowedHost = ALLOWED_TRADING_DOMAINS.some(
         (domain) => host === domain || host.endsWith("." + domain)
       );
+      if (!isAllowedHost) return false;
+
+      // Dedicated trading subdomains are always active
+      const isDedicatedTerminalSubdomain = /^(web|trade|pro|tv|kite|ant|neo|secure|ttweb|india|online|app)\./i.test(host);
+      if (isDedicatedTerminalSubdomain) return true;
+
+      // On root/www broker sites, skip obvious marketing/blog/mutual-fund pages
+      if (NON_TRADING_PATH_REGEX.test(pathname)) {
+        return false;
+      }
+
+      // On Angel One www root, require /trade
+      if (host === "www.angelone.in" && !pathname.startsWith("/trade")) {
+        return false;
+      }
+
+      return true;
     } catch (_) {
       return false;
     }
@@ -71,7 +107,7 @@
   let suppressedBrokerElements = [];
 
   console.log(
-    "%c[TradeGuard 🛡️ v1.2.1] ACTIVE ON TRADING TERMINAL",
+    "%c[TradeGuard 🛡️ v1.2.2] ACTIVE ON TRADING TERMINAL",
     "background: #0284c7; color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px;"
   );
 
@@ -226,7 +262,7 @@
           <div class="section">
             <div class="sec-title">🎯 Pre-Trade Discipline Gatekeeper</div>
             <div class="sec-desc">
-              When you click <strong>Instant Sell</strong>, <strong>Buy</strong>, or <strong>Square Off</strong> on Dhan, Kite, or TradingView, TradeGuard catches the click at browser capture level (<span class="kbd">useCapture: true</span>) before broker code receives it.
+              When you click <strong>Buy</strong>, <strong>Instant Sell</strong>, <strong>Place Order</strong>, or <strong>Square Off</strong> on TradingView, Dhan, Kite, ICICI Direct, SBI, Groww, Sahi, Fyers &amp; other supported brokers, TradeGuard catches the click at browser capture level (<span class="kbd">useCapture: true</span>) before broker code receives it.
               <ul class="rules-preview">
                 ${currentRules.map((r, i) => `<li><strong>${i + 1}.</strong> ${r}</li>`).join("")}
               </ul>
@@ -364,16 +400,16 @@
       return null;
     }
 
-    // Ignore cancel / dismiss buttons
-    if (/^(cancel|dismiss|back|settings|close dialog|help)$/i.test(cleanText)) {
+    // Ignore cancel / dismiss / plan-upgrade buttons
+    if (/^(cancel|dismiss|back|settings|close dialog|help|logout|sign out|buy pro|buy plan|subscribe)$/i.test(cleanText)) {
       return null;
     }
 
     const isOrderAction =
-      /\b(instant sell|instant buy|sell market|buy market|sell limit|buy limit|place order|submit order|square off|squareoff|close position|exit position|close trade)\b/i.test(
+      /\b(instant sell|instant buy|sell now|buy now|sell market|buy market|sell limit|buy limit|place order|place buy|place sell|submit order|confirm order|confirm buy|confirm sell|execute order|square off|squareoff|sq off|close position|exit position|exit all|close trade)\b/i.test(
         cleanText
       ) ||
-      /^(instant sell|instant buy|sell|buy|exit|square off|submit|execute)$/i.test(cleanText);
+      /^(instant sell|instant buy|sell|buy|exit|square off|sq off|submit|execute)$/i.test(cleanText);
 
     const cls = typeof btnNode.className === "string" ? btnNode.className.toLowerCase() : "";
     const id = typeof btnNode.id === "string" ? btnNode.id.toLowerCase() : "";

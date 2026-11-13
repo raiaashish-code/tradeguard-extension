@@ -1,7 +1,7 @@
-# TradeGuard v1.2.1 — Pre-Trade Discipline & Behavioral Seatbelt
+# TradeGuard v1.2.2 — Pre-Trade Discipline & Behavioral Seatbelt
 
 > **Zero-API, 100% Client-Side Pre-Trade Gatekeeper for Web Trading Terminals**  
-> Strictly active ONLY on supported trading sites: **Dhan Web** (`*.dhan.co`), **TradingView** (`*.tradingview.com`), **Zerodha Kite** (`kite.zerodha.com`), **Upstox** (`pro.upstox.com`, `tv.upstox.com`), **Fyers** (`trade.fyers.in`), **Angel One** (`trade.angelone.in`), **Sensibull**, **AliceBlue**, and **Paytm Money** — never runs on general non-trading websites.
+> Strictly active ONLY on supported trading sites: **TradingView**, **Dhan / ScanX**, **Zerodha Kite**, **ICICI Direct**, **SBI Securities / SBI Smart**, **Groww**, **Sahi**, **Fyers**, **Upstox**, **Angel One**, **Kotak Neo**, **HDFC Sky / HDFC Sec**, **Motilal Oswal**, **5paisa**, **Sharekhan**, **Axis Direct**, **AliceBlue**, **Paytm Money**, **Sensibull**, **Shoonya**, **Flattrade**, **m.Stock**, **Samco**, **Definedge**, **Delta Exchange**, and **CoinDCX** — never runs on general websites.
 
 ---
 

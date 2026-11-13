@@ -38,10 +38,24 @@ const downgradeFreeBtn = document.getElementById("downgradeFreeBtn");
 const googleSignInBtn = document.getElementById("googleSignInBtn");
 const authStatusText = document.getElementById("authStatusText");
 const googleBtnText = document.getElementById("googleBtnText");
+const emailInput = document.getElementById("emailInput");
+const toastBanner = document.getElementById("toastBanner");
 
 let currentPlan = "free";
 let currentUserEmail = null;
 let currentRulesState = DEFAULT_RULES;
+let toastTimer = null;
+let confirmClearTimer = null;
+
+function showToast(msg, isWarn = false) {
+  if (!toastBanner) return;
+  toastBanner.textContent = msg;
+  toastBanner.className = "toast-banner show" + (isWarn ? " warn" : "");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastBanner.classList.remove("show");
+  }, 3500);
+}
 
 // Tab Switching
 tabButtons.forEach(btn => {
@@ -119,9 +133,11 @@ function updatePlanUI(plan, email) {
   // Update Auth box
   if (currentUserEmail) {
     if (authStatusText) authStatusText.textContent = `Signed in as: ${currentUserEmail}`;
+    if (emailInput) emailInput.style.display = "none";
     if (googleBtnText) googleBtnText.textContent = "Sign Out";
   } else {
     if (authStatusText) authStatusText.textContent = "Sign in to sync your rules & unlock Pro features across devices";
+    if (emailInput) emailInput.style.display = "block";
     if (googleBtnText) googleBtnText.textContent = "Continue with Google";
   }
 }
@@ -249,11 +265,12 @@ if (closeUpgradeModal) closeUpgradeModal.onclick = closeModal;
 // Activate Pro License
 if (activateProBtn) {
   activateProBtn.onclick = () => {
-    saveData({ userPlan: "pro", userEmail: currentUserEmail || "trader@tradeguard.app" }, () => {
-      updatePlanUI("pro", currentUserEmail || "trader@tradeguard.app");
+    const email = (emailInput && emailInput.value.trim()) || currentUserEmail || "trader@tradeguard.app";
+    saveData({ userPlan: "pro", userEmail: email }, () => {
+      updatePlanUI("pro", email);
       renderJournal(tradeJournal);
       closeModal();
-      alert("🎉 Welcome to TradeGuard Pro!\n\nUnlimited pre-trade rules, custom cooling-off timers, and advanced 1% risk controls are now unlocked.");
+      showToast("🎉 Pro unlocked! Unlimited rules & custom cooldowns active.");
     });
   };
 }
@@ -265,24 +282,25 @@ if (downgradeFreeBtn) {
       updatePlanUI("free", currentUserEmail);
       renderJournal(tradeJournal);
       closeModal();
-      alert("Switched back to Free Tier.");
+      showToast("Switched back to Free Tier (3 rules max).", true);
     });
   };
 }
 
-// Sign in with Google simulation
+// Inline Sign-In without native prompt()
 if (googleSignInBtn) {
   googleSignInBtn.onclick = () => {
     if (currentUserEmail) {
-      // Sign out
       saveData({ userEmail: null, userPlan: "free" }, () => {
         updatePlanUI("free", null);
+        showToast("Signed out safely.", true);
       });
     } else {
-      // Sign in
-      const email = prompt("Enter your Google Account email to sign in:", "rai.aashish@gmail.com") || "rai.aashish@gmail.com";
+      const typedEmail = emailInput ? emailInput.value.trim() : "";
+      const email = typedEmail && typedEmail.includes("@") ? typedEmail : "trader@tradeguard.app";
       saveData({ userEmail: email }, () => {
         updatePlanUI(currentPlan, email);
+        showToast(`Signed in as ${email}`);
       });
     }
   };
@@ -315,21 +333,24 @@ guardEnabledEl.addEventListener("change", () => {
 
 capitalInput.addEventListener("change", () => {
   saveData({ capital: parseFloat(capitalInput.value) || 200000 });
+  showToast("Trading capital updated.");
 });
 
 maxRiskInput.addEventListener("change", () => {
   saveData({ maxRiskPercent: parseFloat(maxRiskInput.value) || 1.0 });
+  showToast("Max risk % updated.");
 });
 
 cooldownSelect.addEventListener("change", () => {
   const val = parseInt(cooldownSelect.value, 10) || 0;
   if (currentPlan === "free" && (val === 1 || val === 5)) {
-    alert("⭐ Custom Cooldown Durations (1 min & 5 min) are a TradeGuard Pro feature.\n\nFree plan defaults to standard 3-minute cooling-off.");
     cooldownSelect.value = "3";
+    showToast("1m & 5m cooldowns require TradeGuard Pro.", true);
     openModal();
     return;
   }
   saveData({ cooldownMinutes: val });
+  showToast("Cooldown timer updated.");
 });
 
 maxTradesInput.addEventListener("change", () => {
@@ -347,13 +368,14 @@ function handleAddRule() {
     // Free tier: max 3 rules
     if (plan === "free" && current.length >= 3) {
       newRuleInput.value = "";
+      showToast("Free Plan allows max 3 rules. Upgrade to Pro!", true);
       openModal();
       return;
     }
 
     // Pro tier: max 20 rules
     if (current.length >= 20) {
-      alert("TradeGuard supports up to 20 active rules to keep order execution fast.");
+      showToast("Maximum of 20 active rules reached.", true);
       return;
     }
 
@@ -378,7 +400,7 @@ exportCsvBtn.addEventListener("click", () => {
   loadData((data) => {
     const trades = data.tradeJournal || [];
     if (trades.length === 0) {
-      alert("No trades recorded yet in your journal.");
+      showToast("No trades recorded yet in your journal.", true);
       return;
     }
 
@@ -406,15 +428,30 @@ exportCsvBtn.addEventListener("click", () => {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    showToast("Trade Journal CSV downloaded.");
   });
 });
 
-// Clear Journal
+// Clear Journal (2-click inline confirmation without native confirm())
+let confirmClearPending = false;
 clearJournalBtn.addEventListener("click", () => {
-  if (confirm("Clear local trade log?")) {
-    saveData({ tradeJournal: [] }, () => {
-      tradeJournal = [];
-      renderJournal([]);
-    });
+  if (!confirmClearPending) {
+    confirmClearPending = true;
+    clearJournalBtn.textContent = "Confirm Clear?";
+    if (confirmClearTimer) clearTimeout(confirmClearTimer);
+    confirmClearTimer = setTimeout(() => {
+      confirmClearPending = false;
+      clearJournalBtn.textContent = "Clear Log";
+    }, 3000);
+    return;
   }
+
+  confirmClearPending = false;
+  clearJournalBtn.textContent = "Clear Log";
+  if (confirmClearTimer) clearTimeout(confirmClearTimer);
+  saveData({ tradeJournal: [] }, () => {
+    tradeJournal = [];
+    renderJournal([]);
+    showToast("Local trade log cleared.");
+  });
 });

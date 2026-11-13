@@ -562,7 +562,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
                   <span>🔒 Trading-Sites Only &amp; Zero Lag</span>
                 </div>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Runs strictly on trading platforms (Dhan, Kite, TradingView, Upstox, Fyers, Angel One) — never on general sites. Sub-microsecond canvas bypass (<code className="font-mono text-sky-300">&lt;0.002ms</code>) keeps charts at 60 FPS.
+                  Runs strictly on 29 trading domains (TradingView, Dhan, Kite, ICICI Direct, SBI Securities, Groww, Sahi, Fyers, Upstox, Angel One, Kotak Neo, HDFC Sky, 5paisa, AliceBlue, Paytm Money, Shoonya, Delta &amp; more) — never on general sites. Sub-microsecond canvas bypass (<code className="font-mono text-sky-300">&lt;0.002ms</code>) keeps charts at 60 FPS.
                 </p>
               </div>
             </div>
