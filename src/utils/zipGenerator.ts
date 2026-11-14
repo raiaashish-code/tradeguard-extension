@@ -270,7 +270,7 @@ function createGatekeeperScreenshotBlob(): Promise<Blob> {
     ctx.fillStyle = '#64748b';
     ctx.font = '14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('Works strictly on TradingView, Zerodha Kite, Dhan, ICICI Direct, SBI Securities, Groww, Sahi, Fyers & 20+ Terminals', 640, 760);
+    ctx.fillText('Active strictly on supported web trading & charting terminals — zero lag on general websites', 640, 760);
 
     canvas.toBlob((blob) => resolve(blob || new Blob([], { type: 'image/jpeg' })), 'image/jpeg', 0.95);
   });
@@ -430,23 +430,23 @@ function createSmallPromoTileBlob(): Promise<Blob> {
 }
 
 export const WEBSTORE_COPY_TEXT = {
-  detailedDescription: `TradeGuard is a zero-API, 100% client-side behavioral seatbelt for active web traders. It pauses Buy, Sell, and Square-Off order clicks before they hit your broker so you never execute an emotional or oversized FOMO trade.
+  detailedDescription: `TradeGuard is a zero-API, 100% client-side behavioral checklist for active web traders. It pauses Buy, Sell, and Square-Off order clicks before they reach your broker so you avoid emotional or oversized trades.
 
 KEY FEATURES:
-• Pre-Trade Discipline Checklist: Configure up to 20 custom rules and verify them rapidly using keys 1–5 and Enter (or press Esc to abort with zero capital risked).
-• Live 1% Stop-Loss Risk Calculator: Automatically reads symbol, price, and quantity from your order ticket and displays real-time ₹ Risk and % of Capital checks.
-• Revenge-Trade Cooldown Breaker: Automatically starts a guided breathing cooldown (1m, 3m, or 5m) after position exits to prevent tilt re-entries.
-• Setup Tags & Local CSV Journal: Tag Breakout, Pullback, VWAP, or Scalp setups and export your local trade log to CSV for Excel or Google Sheets.
-• Strictly Trading Terminals Only: Runs only on supported trading platforms (TradingView charts, Zerodha Kite, Dhan / ScanX, ICICI Direct, SBI Securities, Groww stocks/F&O, Sahi, Fyers, Upstox, Angel One, Kotak Neo, HDFC Sky, Motilal Oswal, 5paisa, AliceBlue, Paytm Money, Shoonya, Delta Exchange, CoinDCX) with sub-microsecond canvas bypass for 60 FPS charts.
+• Pre-Trade Discipline Checklist: Configure up to 20 custom rules and verify them rapidly using keys 1–5 and Enter, or press Esc to abort with zero capital risked.
+• Live 1% Stop-Loss Risk Calculator: Reads symbol, price, and quantity directly from your order window to display real-time Stop-Loss risk and percentage of capital.
+• Revenge-Trade Cooldown Breaker: Automatically starts a guided breathing cooldown (1, 3, or 5 minutes) after position exits to help prevent impulsive re-entries.
+• Setup Tags & Local CSV Journal: Tag trades by setup and mindset, and export your local log to a CSV file for Excel or Google Sheets.
+• Lightweight & Terminal-Scoped: Activates only on supported web charting and trading order pages, with an instant canvas bypass to keep chart scrolling smooth.
 
 PRIVACY FIRST:
-Zero broker API keys, zero broker passwords, zero external servers, and zero tracking. Everything stays inside chrome.storage.local on your device.`,
+Zero broker API keys, zero broker passwords, zero external servers, and zero tracking. All preferences and trade logs remain strictly inside local browser storage on your device.`,
   singlePurpose:
     'Enforces a client-side pre-trade discipline checklist, 1% Stop-Loss risk check, and anti-revenge cooling-off timer before order clicks execute on supported web trading terminals.',
   storageJustification:
     'Used strictly to store the user’s checklist rules, risk capital settings, cooling-off timer preference, and local CSV trade journal entries on-device via chrome.storage.local.',
   hostJustification:
-    'Host access is strictly restricted to supported financial trading terminal domains (such as TradingView charts, Zerodha Kite, Dhan, ICICI Direct, SBI Securities, Groww, Sahi, Fyers, Upstox, Angel One) so the DOM order gatekeeper modal only activates on active trading terminals and never on general websites.',
+    'Host access is strictly restricted to supported financial charting and broker web-terminal URLs so the DOM order-confirmation overlay only runs on active trading screens and never on general websites.',
   privacyNote:
     'Does NOT collect, transmit, or sell user data. Select "No, I am not collecting user data" and check all 3 data-use compliance certifications.'
 };
