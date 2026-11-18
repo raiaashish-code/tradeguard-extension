@@ -46,31 +46,66 @@
   ];
 
   const NON_TRADING_PATH_REGEX = /^\/(blog|blogs|learn|academy|calculators?|mutual-funds?|sip|loans?|insurance|credit-cards?|careers|about|contact|pricing|help|support|faq|news|ideas|scripts|markets|screener)(\/|$)/i;
-  const ROOT_TRADING_PATH_REGEX = /^\/(chart|charts|trade|terminal|stocks|futures-and-options|indices|commodities|orders|positions|portfolio|watchlist|option-chain|options|futures|fno|equity|commodity|app)(\/|$)/i;
+  const ROOT_TRADING_PATH_REGEX = /^\/(chart|charts|charting_library|tv|trade|terminal|stocks|futures-and-options|indices|commodities|orders|positions|portfolio|watchlist|option-chain|options|futures|fno|equity|commodity|app)(\/|$)/i;
+
+  function isHostAndPathTrading(host, pathname) {
+    if (!host) return false;
+    const isAllowedHost = ALLOWED_TRADING_DOMAINS.some(
+      (domain) => host === domain || host.endsWith("." + domain)
+    );
+    if (!isAllowedHost) return false;
+    if (NON_TRADING_PATH_REGEX.test(pathname)) return false;
+
+    if (host.endsWith("tradingview.com") && !host.startsWith("tv.")) {
+      return /^\/(chart|trading|charting_library)(\/|$)/i.test(pathname);
+    }
+
+    const isDedicatedTerminalSubdomain = /^(web|trade|pro|tv|kite|ant|neo|nt|secure|ttweb|india|online|app|newtrade|opstra|terminal|charts|chart|desk|plus|live|my)\./i.test(host);
+    if (isDedicatedTerminalSubdomain) return true;
+
+    return ROOT_TRADING_PATH_REGEX.test(pathname);
+  }
 
   function isTradingTerminalSite() {
     try {
       const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase();
       const pathname = (window.location && window.location.pathname ? window.location.pathname : "/").toLowerCase();
-      if (!host) return false;
 
-      const isAllowedHost = ALLOWED_TRADING_DOMAINS.some(
-        (domain) => host === domain || host.endsWith("." + domain)
-      );
-      if (!isAllowedHost) return false;
-
-      if (NON_TRADING_PATH_REGEX.test(pathname)) {
-        return false;
+      if (isHostAndPathTrading(host, pathname)) {
+        return true;
       }
 
-      if (host.endsWith("tradingview.com") && !host.startsWith("tv.")) {
-        return /^\/(chart|trading)(\/|$)/i.test(pathname);
+      // Support dynamic about:blank / srcdoc / charting_library iframes embedded inside a trading terminal
+      if (window !== window.top) {
+        try {
+          const topHost = (window.top.location.hostname || "").toLowerCase();
+          const topPath = (window.top.location.pathname || "/").toLowerCase();
+          if (isHostAndPathTrading(topHost, topPath)) return true;
+        } catch (_) {}
+
+        try {
+          if (window.location && window.location.ancestorOrigins && window.location.ancestorOrigins.length > 0) {
+            for (let i = 0; i < window.location.ancestorOrigins.length; i++) {
+              const anc = new URL(window.location.ancestorOrigins[i]);
+              const ancHost = anc.hostname.toLowerCase();
+              if (ALLOWED_TRADING_DOMAINS.some((d) => ancHost === d || ancHost.endsWith("." + d))) {
+                return true;
+              }
+            }
+          }
+        } catch (_) {}
+
+        try {
+          if (document.referrer) {
+            const ref = new URL(document.referrer);
+            if (isHostAndPathTrading(ref.hostname.toLowerCase(), ref.pathname.toLowerCase())) {
+              return true;
+            }
+          }
+        } catch (_) {}
       }
 
-      const isDedicatedTerminalSubdomain = /^(web|trade|pro|tv|kite|ant|neo|nt|secure|ttweb|india|online|app|newtrade|opstra|terminal|charts|desk|plus|live|my)\./i.test(host);
-      if (isDedicatedTerminalSubdomain) return true;
-
-      return ROOT_TRADING_PATH_REGEX.test(pathname);
+      return false;
     } catch (_) {
       return false;
     }
@@ -390,9 +425,6 @@
         return null;
       }
     }
-    if (activeModalHost) {
-      return null;
-    }
 
     let btnNode = null;
     for (const node of path) {
@@ -401,44 +433,88 @@
       const cls = typeof node.className === "string" ? node.className.toLowerCase() : "";
       const id = typeof node.id === "string" ? node.id.toLowerCase() : "";
       const role = ((node.getAttribute && node.getAttribute("role")) || "").toLowerCase();
+      const dataName = ((node.getAttribute && node.getAttribute("data-name")) || "").toLowerCase();
 
-      if (
+      if (role === "tab" || role === "radio" || role === "checkbox" || role === "switch") {
+        return null;
+      }
+
+      const isCandidate =
         tag === "button" ||
         role === "button" ||
+        role === "menuitem" ||
         (tag === "input" && (node.type === "submit" || node.type === "button")) ||
         id === "btnsubmit" ||
         cls.includes("btn-submit") ||
         cls.includes("btn-sell") ||
         cls.includes("btn-buy") ||
+        cls.includes("buy-btn") ||
+        cls.includes("sell-btn") ||
+        cls.includes("buybutton") ||
+        cls.includes("sellbutton") ||
         cls.includes("btn-orange") ||
         cls.includes("btn-blue") ||
         cls.includes("instant-sell") ||
+        cls.includes("instant-buy") ||
+        cls.includes("quick-buy") ||
+        cls.includes("quick-sell") ||
         cls.includes("btn-squareoff") ||
         cls.includes("button-close") ||
-        node.getAttribute("data-name") === "submit-order" ||
-        node.getAttribute("data-name") === "close-position"
-      ) {
+        cls.includes("place-order") ||
+        dataName === "submit-order" ||
+        dataName === "close-position" ||
+        dataName.includes("buy-order") ||
+        dataName.includes("sell-order") ||
+        dataName.includes("place-order") ||
+        dataName.includes("reverse-position") ||
+        dataName.includes("flatten");
+
+      if (isCandidate) {
         btnNode = node;
         break;
       }
+
+      if ((tag === "div" || tag === "tr" || tag === "a") && (cls.includes("item-") || cls.includes("menu-item") || node.hasAttribute("tabindex"))) {
+        const txtLen = ((node.innerText || node.textContent || "").trim()).length;
+        if (txtLen > 0 && txtLen <= 85) {
+          btnNode = node;
+          break;
+        }
+      }
+
+      if ((tag === "div" || tag === "span" || tag === "a") && node.children && node.children.length <= 4 && !(node.closest && node.closest("[role='tablist'], nav"))) {
+        const leafTxt = (node.innerText || node.textContent || "").replace(/[^\w\s]/gi, " ").replace(/\s+/g, " ").trim().toLowerCase();
+        if (
+          leafTxt.length > 0 &&
+          leafTxt.length <= 45 &&
+          /^(?:[\d\s]+)?(?:instant buy|instant sell|quick buy|quick sell|buy mkt|sell mkt|buy market|sell market|buy now|sell now|place order|place buy|place sell|confirm order|square off|sq off|exit position|buy|sell)(?:[\d\s]+)?$/i.test(
+            leafTxt
+          )
+        ) {
+          btnNode = node;
+          break;
+        }
+      }
     }
 
-    if (!btnNode || btnNode.disabled) return null;
+    if (!btnNode || btnNode.disabled || btnNode.getAttribute("aria-disabled") === "true") return null;
 
-    const rawText =
-      btnNode.innerText ||
-      btnNode.textContent ||
-      btnNode.value ||
-      btnNode.getAttribute("aria-label") ||
-      btnNode.getAttribute("title") ||
-      btnNode.getAttribute("data-name") ||
-      "";
+    const rawText = [
+      btnNode.innerText || btnNode.textContent || btnNode.value || "",
+      btnNode.getAttribute("aria-label") || "",
+      btnNode.getAttribute("title") || "",
+      btnNode.getAttribute("data-name") || ""
+    ].join(" ");
 
     const cleanText = rawText
       .replace(/[^\w\s]/gi, " ")
       .replace(/\s+/g, " ")
       .trim()
       .toLowerCase();
+
+    if (cleanText.length > 100) {
+      return null;
+    }
 
     if (
       /^(open|closed|in loss|today|all|normal|trading|market|limit|super|trail|vwap|more options|set p l exit|analyse)$/i.test(
@@ -448,29 +524,43 @@
       return null;
     }
 
-    if (/^(cancel|dismiss|back|settings|close dialog|help|logout|sign out|buy pro|buy plan|subscribe)$/i.test(cleanText)) {
+    if (
+      /^(cancel|dismiss|back|settings|close dialog|help|logout|sign out|buy pro|buy plan|subscribe)$/i.test(cleanText) ||
+      /\b(show buy|hide buy|chart settings|order book|order history|trade history|buyback|buy pro|buy plan|subscribe)\b/i.test(cleanText)
+    ) {
       return null;
     }
 
     const isOrderAction =
-      /\b(instant sell|instant buy|sell now|buy now|sell market|buy market|sell limit|buy limit|place order|place buy|place sell|submit order|confirm order|confirm buy|confirm sell|execute order|square off|squareoff|sq off|close position|exit position|exit all|close trade)\b/i.test(
+      /\b(instant sell|instant buy|quick buy|quick sell|sell now|buy now|sell mkt|buy mkt|sell market|buy market|sell limit|buy limit|sell stop|buy stop|place order|place buy|place sell|submit order|confirm order|confirm buy|confirm sell|execute order|square off|squareoff|sq off|close position|exit position|exit all|close trade|flatten|reverse position)\b/i.test(
         cleanText
       ) ||
-      /^(instant sell|instant buy|sell|buy|exit|square off|sq off|submit|execute)$/i.test(cleanText);
+      /^(instant sell|instant buy|sell|buy|exit|square off|sq off|submit|execute)$/i.test(cleanText) ||
+      /\b(buy|sell)\s+(?:\d+|mkt|market|limit|lmt|stop|stp|ce|pe|call|put|lot|lots|qty|now|order|position)/i.test(cleanText) ||
+      /^(?:[\d\s]+)?(?:buy|sell)(?:[\d\s]+)?$/i.test(cleanText);
 
     const cls = typeof btnNode.className === "string" ? btnNode.className.toLowerCase() : "";
     const id = typeof btnNode.id === "string" ? btnNode.id.toLowerCase() : "";
+    const dataName = ((btnNode.getAttribute && btnNode.getAttribute("data-name")) || "").toLowerCase();
 
     const isBrokerOrderClass =
       id.includes("btnsubmit") ||
       cls.includes("btn-submit") ||
       cls.includes("btn-sell") ||
       cls.includes("btn-buy") ||
+      cls.includes("buy-btn") ||
+      cls.includes("sell-btn") ||
+      cls.includes("buybutton") ||
+      cls.includes("sellbutton") ||
       cls.includes("btn-orange") ||
       cls.includes("btn-blue") ||
       cls.includes("instant-sell") ||
-      btnNode.getAttribute("data-name") === "submit-order" ||
-      btnNode.getAttribute("data-name") === "close-position";
+      cls.includes("instant-buy") ||
+      dataName === "submit-order" ||
+      dataName === "close-position" ||
+      dataName.includes("buy-order") ||
+      dataName.includes("sell-order") ||
+      dataName.includes("place-order");
 
     const isPositionCloseIcon =
       (cleanText === "x" || rawText.includes("✕") || rawText.includes("×")) &&
@@ -1239,25 +1329,40 @@
     closeChecklistModal();
 
     try {
-      targetBtn.click();
-      const clickEvt = new MouseEvent("click", {
+      const evtOpts = {
         bubbles: true,
         cancelable: true,
         composed: true,
-        view: window
-      });
-      targetBtn.dispatchEvent(clickEvt);
+        view: window,
+        button: 0
+      };
+      if (typeof PointerEvent !== "undefined") {
+        targetBtn.dispatchEvent(new PointerEvent("pointerdown", evtOpts));
+      }
+      targetBtn.dispatchEvent(new MouseEvent("mousedown", evtOpts));
+      if (typeof PointerEvent !== "undefined") {
+        targetBtn.dispatchEvent(new PointerEvent("pointerup", evtOpts));
+      }
+      targetBtn.dispatchEvent(new MouseEvent("mouseup", evtOpts));
+
+      if (typeof targetBtn.click === "function") {
+        targetBtn.click();
+      } else {
+        targetBtn.dispatchEvent(new MouseEvent("click", evtOpts));
+      }
     } catch (err) {
       console.error("[TradeKavach+] Pass-through error:", err);
     } finally {
       setTimeout(() => {
         isBypassing = false;
-      }, 500);
+      }, 400);
     }
   }
 
-  function handleCaptureClick(e) {
+  function handleCapturePointerOrClick(e) {
     if (isBypassing || !isEnabled || !e) return;
+
+    if (typeof e.button === "number" && e.button !== 0) return;
 
     const targetTag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
     if (targetTag === "canvas") return;
@@ -1268,6 +1373,11 @@
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
+
+    // If modal is already open from pointerdown/mousedown on the same tap, swallow trailing mousedown/click cleanly
+    if (activeModalHost) {
+      return;
+    }
 
     const ctx = extractScreenContext(orderBtn);
     const isExitOrder = ctx.side === "SELL";
@@ -1295,5 +1405,7 @@
     openChecklistModal(orderBtn, effectiveRules);
   }
 
-  window.addEventListener("click", handleCaptureClick, true);
+  window.addEventListener("pointerdown", handleCapturePointerOrClick, true);
+  window.addEventListener("mousedown", handleCapturePointerOrClick, true);
+  window.addEventListener("click", handleCapturePointerOrClick, true);
 })();
