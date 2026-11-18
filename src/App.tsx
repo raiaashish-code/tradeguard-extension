@@ -540,7 +540,7 @@ export default function App() {
 
       {/* Clean Footer */}
       <footer className="mt-auto border-t border-slate-800/80 py-4 px-6 text-xs text-slate-500 text-center flex flex-col sm:flex-row items-center justify-between gap-3 max-w-7xl mx-auto w-full">
-        <span>TradeGuard MVP 1.1 &middot; Zero-API Pre-Trade Discipline &amp; Risk Sizing Extension</span>
+        <span>TradeKavach+ v1.3.0 &middot; Zero-API Pre-Trade Discipline &amp; Risk Sizing Extension</span>
         <div className="flex items-center gap-4 text-slate-400">
           <span>Chrome Manifest V3</span>
           <span>&middot;</span>

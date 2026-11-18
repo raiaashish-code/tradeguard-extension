@@ -58,13 +58,13 @@ cd tradeguard-extension`;
     {
       id: 'storage',
       label: 'Privacy Practices → storage Permission Justification',
-      hint: 'Why TradeGuard needs chrome.storage.local',
+      hint: 'Why TradeKavach+ needs chrome.storage.local',
       text: WEBSTORE_COPY_TEXT.storageJustification
     },
     {
       id: 'host',
       label: 'Privacy Practices → Host Permissions Justification',
-      hint: 'Why TradeGuard runs strictly on trading terminal URLs',
+      hint: 'Why TradeKavach+ runs strictly on trading terminal URLs',
       text: WEBSTORE_COPY_TEXT.hostJustification
     }
   ];
@@ -104,7 +104,7 @@ cd tradeguard-extension`;
               className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             >
               <Download className="w-3.5 h-3.5 text-sky-400" />
-              <span>{downloadingExt ? 'Packing...' : 'Extension ZIP (v1.2.3)'}</span>
+              <span>{downloadingExt ? 'Packing...' : 'Extension ZIP (v1.3.0)'}</span>
             </button>
           </div>
         </div>
@@ -161,7 +161,7 @@ cd tradeguard-extension`;
 
           <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-lg p-3 text-xs text-emerald-200">
             <strong>Data Usage Checkboxes (Privacy Tab):</strong> Select{' '}
-            <code className="font-mono text-emerald-300">No, I am not collecting user data</code> (TradeGuard uses zero analytics, zero remote servers, and stores everything locally in <code className="font-mono">chrome.storage.local</code>), then check the compliance boxes and save draft.
+            <code className="font-mono text-emerald-300">No, I am not collecting user data</code> (TradeKavach+ uses zero analytics, zero remote servers, and stores everything locally in <code className="font-mono">chrome.storage.local</code>), then check the compliance boxes and save draft.
           </div>
         </div>
       </div>
@@ -227,15 +227,22 @@ cd tradeguard-extension`;
       <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-5">
         <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-sky-400" />
-          <span>Manifest V3 Package Structure (v1.2.3)</span>
+          <span>Manifest V3 Package Structure (TradeKavach+ v1.3.0)</span>
         </h3>
         <pre className="p-3.5 bg-[#070b13] border border-slate-800 rounded-lg text-xs font-mono text-slate-300 leading-relaxed">
 {`extension/
 ├── manifest.json   # Manifest V3, 36 strict trading URLs, zero <all_urls>
-├── content.js      # Capture-phase interceptor & Shadow DOM Gatekeeper modal
-├── popup.html      # Toolbar UI (Rules, Risk, Journal CSV, Guide)
-├── popup.js        # Local chrome.storage.local persistence (All features free)
-├── README.md       # Feature documentation & keyboard shortcuts
+├── background.js   # First-install Welcome Tour & default guardrail setup
+├── content.js      # Capture-phase interceptor, 1% Risk, 9:15 AM Guard & Panic Lock
+├── popup.html      # Compact toolbar popup (Mood, Stats, Panic Lock, Rules, Risk)
+├── popup.js        # Local chrome.storage.local persistence & full-tab links
+├── welcome.html    # Interactive Welcome Tour & 60-second preset onboarding
+├── welcome.js      # Live simulated Buy click test & preset sync
+├── dashboard.html  # Full-tab Analytics Dashboard (Win Rate, Mood/Setup, Trade Log)
+├── dashboard.js    # Client-side analytics & CSV/JSON export
+├── options.html    # Single-page Settings (Breakers, Session Lock 3:30 PM IST, Backup)
+├── options.js      # Settings & JSON/CSV backup/restore controller
+├── README.md       # Documentation & keyboard shortcuts
 └── icons/
     ├── icon16.png  # Toolbar icon
     ├── icon48.png  # Extensions manager icon

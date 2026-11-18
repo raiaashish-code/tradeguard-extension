@@ -64,7 +64,8 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
 
   const handleExportCsv = () => {
     if (tradeJournal.length === 0) {
-      alert('No trades recorded yet in your journal.');
+      setValidationError('No trades recorded yet in your journal. Place a test trade in the sandbox first.');
+      setTimeout(() => setValidationError(null), 4000);
       return;
     }
     const headers = ['ID', 'Timestamp', 'Date Time', 'Broker', 'Side', 'Symbol', 'Qty', 'Price', 'StopLoss', 'RiskAmount', 'StrategyTag', 'MindsetTag'];
@@ -87,7 +88,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `TradeGuard_Journal_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `TradeKavachPlus_Journal_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -99,13 +100,13 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <span>Chrome Toolbar Popup Simulator (v1.2.3)</span>
+            <span>Chrome Toolbar Popup Simulator (TradeKavach+ v1.3.0)</span>
             <span className="text-[11px] font-mono px-2 py-0.5 rounded border bg-emerald-950/40 border-emerald-500/30 text-emerald-400">
               All Features Free
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Full-access launch mode: configure up to 20 custom checklist rules, 1% risk sizing, custom cooldown timers, and unlimited CSV trade journaling at zero cost.
+            Full-access launch mode: configure up to 20 custom checklist rules, 1% risk sizing, 9:15 AM IST opening guard, panic lockout, and unlimited CSV/Dashboard analytics at zero cost.
           </p>
         </div>
 
@@ -124,17 +125,17 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
       <div className="flex flex-col items-center justify-center p-6 bg-[#070b13] border border-slate-800/80 rounded-2xl relative overflow-hidden">
         {/* Browser Chrome Toolbar Simulation Bar */}
         <div className="w-[360px] max-w-full bg-[#1b2230] px-3 py-1.5 rounded-t-lg border-t border-x border-slate-700/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-          <span className="truncate">chrome-extension://tradeguard/popup.html</span>
-          <span className="text-sky-400 font-semibold">360px &times; Auto</span>
+          <span className="truncate">chrome-extension://tradekavach-plus/popup.html</span>
+          <span className="text-sky-400 font-semibold">380px &times; Auto</span>
         </div>
 
-        {/* The Exact Extension Popup Body (360px width) */}
+        {/* The Exact Extension Popup Body */}
         <div className="w-[360px] max-w-full bg-[#0f172a] border border-slate-700/80 rounded-b-lg p-4 text-[#f8fafc] shadow-2xl space-y-3 relative">
           {/* Header */}
           <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-sky-400" />
-              <h2 className="text-sm font-bold text-sky-400 m-0">TradeGuard v1.2.3</h2>
+              <h2 className="text-sm font-bold text-sky-400 m-0">TradeKavach+ v1.3</h2>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border bg-emerald-500/15 text-emerald-400 border-emerald-500/35">
                 All Free
               </span>
@@ -444,7 +445,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
                   <span>🔒 Trading-Sites Only &amp; Zero Lag</span>
                 </div>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Runs strictly on 29 trading domains (TradingView, Dhan, Kite, ICICI Direct, SBI Securities, Groww, Sahi, Fyers, Upstox, Angel One, Kotak Neo, HDFC Sky, 5paisa, AliceBlue, Paytm Money, Shoonya, Delta &amp; more) — never on general sites. Sub-microsecond canvas bypass (<code className="font-mono text-sky-300">&lt;0.002ms</code>) keeps charts at 60 FPS.
+                  Installed ZIP also includes <strong className="text-sky-300">Welcome Tour</strong>, full-tab <strong className="text-sky-300">Analytics Dashboard</strong>, single-screen <strong className="text-sky-300">Settings</strong>, <strong className="text-sky-300">Panic Lockout</strong>, and <strong className="text-sky-300">9:15–9:30 AM IST</strong> opening volatility guard — with zero chart lag (<code className="font-mono text-sky-300">&lt;0.002ms</code>).
                 </p>
               </div>
             </div>
@@ -471,7 +472,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
             <span>Trading-Sites Only Isolation</span>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Strict host &amp; terminal path rules ensure TradeGuard only activates on trading terminals — never on Gmail, Google, YouTube, or broker marketing pages.
+            Strict host &amp; terminal path rules ensure TradeKavach+ only activates on trading terminals — never on Gmail, Google, YouTube, or broker marketing pages.
           </p>
         </div>
 

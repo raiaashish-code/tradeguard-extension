@@ -42,10 +42,10 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="text-base font-bold tracking-tight text-white font-mono">
-                TradeGuard
+                TradeKavach+
               </span>
               <span className="text-[11px] font-mono text-sky-400 border border-sky-500/30 px-1.5 py-0.2 rounded bg-sky-950/40">
-                v1.2
+                v1.3
               </span>
             </div>
             <span className="text-[11px] text-slate-400 hidden sm:inline">

@@ -11,11 +11,18 @@ export const CodeExplorer: React.FC = () => {
   const [downloading, setDownloading] = useState(false);
 
   const fileDescriptions: Record<FileKey, string> = {
-    'manifest.json': 'Chrome Manifest V3 configuration registering permissions, host matches (TradingView, Dhan, Kite), and content scripts.',
-    'content.js': 'Capture-phase click interceptor (useCapture=true), DOM context reader, isolated Shadow DOM modal, and safe replay mechanism.',
-    'popup.html': 'Chrome extension toolbar popup HTML layout (320px dark theme) for managing pre-trade discipline rules.',
-    'popup.js': 'Client-side persistence logic using chrome.storage.local for up to 5 custom trading rules and master on/off toggle.',
-    'README.md': 'Full project documentation, Chrome installation guide (Developer mode load unpacked), and git commands.'
+    'manifest.json': 'Chrome Manifest V3 configuration (v1.3.0) registering storage permission, background service worker, options page, and 36 strict trading URLs.',
+    'background.js': 'MV3 service worker initializing default discipline settings and opening the interactive Welcome Tour on first install.',
+    'content.js': 'Capture-phase click interceptor, live 1% Risk & Strict Override check, 9:15–9:30 AM IST guard, Panic/Daily Cap lockouts (Exits always allowed), and anti-tilt pause.',
+    'popup.html': 'Compact 380px toolbar popup HTML layout featuring Mood Check-In, Today Stats, Stop Myself Panic Lockout, Rules, Risk, and Journal.',
+    'popup.js': 'Client-side persistence logic using chrome.storage.local for Mood Check-In, Panic Lockout, Session Commitment Lock, and Dashboard/Settings navigation.',
+    'welcome.html': 'First-install Welcome Tour & 60-second preset setup page with toolbar pin instructions and an interactive Buy order preview.',
+    'welcome.js': 'Welcome Tour controller syncing F&O / Equity / Swing presets to local storage and running the live simulated Gatekeeper preview.',
+    'dashboard.html': 'Full-tab local Analytics Dashboard displaying KPIs, Win Rate by Mindset/Setup, behavioral insights, and inline trade outcome editor.',
+    'dashboard.js': 'Analytics engine computing win rates, net INR P&L, skipped-trade stats, mindset insights, and CSV/JSON exports.',
+    'options.html': 'Single-screen Settings page covering Capital & 1% Risk, Indian market breakers, Session Lock until 3:30 PM IST, presets, and backups.',
+    'options.js': 'Settings controller managing strict risk toggle, Calm-You reminder note, Session Commitment Lock, and JSON/CSV backup & restore.',
+    'README.md': 'Full TradeKavach+ v1.3.0 documentation, Chrome unpacked install steps, and keyboard shortcut cheat sheet.'
   };
 
   const handleCopy = () => {

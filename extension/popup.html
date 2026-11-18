@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TradeGuard</title>
+  <title>TradeKavach+</title>
   <style>
     * { box-sizing: border-box; }
     body {
-      width: 360px;
+      width: 380px;
       margin: 0;
-      padding: 14px;
+      padding: 13px;
       background: #0f172a;
       color: #f8fafc;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -21,8 +21,8 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #1e293b;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
+      padding-bottom: 9px;
+      margin-bottom: 9px;
     }
     .title-group {
       display: flex;
@@ -36,21 +36,20 @@
     }
     h2 {
       margin: 0;
-      font-size: 13.5px;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 800;
       color: #38bdf8;
       letter-spacing: -0.01em;
     }
-    .launch-badge {
+    .version-badge {
       font-size: 9.5px;
       font-weight: 700;
-      padding: 2px 6px;
+      padding: 2px 5px;
       border-radius: 4px;
-      background: rgba(16, 185, 129, 0.14);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
+      background: rgba(56, 189, 248, 0.14);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-family: monospace;
     }
     .toggle-label {
       display: flex;
@@ -65,30 +64,197 @@
       accent-color: #38bdf8;
       cursor: pointer;
     }
-    .toggle-label.active {
-      color: #38bdf8;
+    .toggle-label.active { color: #38bdf8; }
+
+    /* Quick Action Links */
+    .quick-nav {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 9px;
+    }
+    .nav-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nav-pill:hover {
+      background: #273549;
+      border-color: #38bdf8;
+      color: #ffffff;
     }
 
-    /* Toast Banner */
+    /* Toast & Lock Banners */
     .toast-banner {
       display: none;
-      padding: 7px 10px;
+      padding: 6px 9px;
       border-radius: 5px;
-      margin-bottom: 9px;
+      margin-bottom: 8px;
       font-size: 11px;
       font-weight: 600;
       background: rgba(16, 185, 129, 0.14);
       border: 1px solid rgba(16, 185, 129, 0.35);
       color: #34d399;
     }
-    .toast-banner.show {
-      display: block;
-    }
+    .toast-banner.show { display: block; }
     .toast-banner.warn {
       background: rgba(245, 158, 11, 0.14);
       border-color: rgba(245, 158, 11, 0.35);
       color: #fbbf24;
     }
+
+    .session-lock-banner {
+      display: none;
+      padding: 6px 9px;
+      border-radius: 5px;
+      margin-bottom: 8px;
+      font-size: 10.5px;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .session-lock-banner.show { display: block; }
+
+    /* Mood Check-In */
+    .card-box {
+      background: #131c31;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 9px 10px;
+      margin-bottom: 9px;
+    }
+    .box-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .box-sub {
+      font-size: 10px;
+      font-weight: 500;
+      color: #64748b;
+    }
+    .mood-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .mood-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 14px;
+      padding: 3px 8px;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .mood-btn:hover { color: #f8fafc; border-color: #475569; }
+    .mood-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+    .mood-btn.warn.active {
+      background: #dc2626;
+      border-color: #f87171;
+      color: #ffffff;
+    }
+
+    /* Stats Strip */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 9px;
+    }
+    .stat-card {
+      background: #131c31;
+      border: 1px solid #1e293b;
+      border-radius: 7px;
+      padding: 7px 8px;
+    }
+    .stat-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #f8fafc;
+      font-family: monospace;
+    }
+    .stat-val.pos { color: #34d399; }
+    .stat-val.neg { color: #fb7185; }
+    .stat-label {
+      font-size: 9.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Panic Lockout Card */
+    .panic-card {
+      background: #131c31;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .panic-card.locked {
+      background: rgba(244, 63, 94, 0.1);
+      border-color: rgba(244, 63, 94, 0.5);
+    }
+    .panic-controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .panic-select {
+      flex: 1;
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      padding: 5px 7px;
+      border-radius: 5px;
+      font-size: 11px;
+      outline: none;
+    }
+    .panic-btn {
+      background: rgba(244, 63, 94, 0.14);
+      border: 1px solid #f43f5e;
+      color: #fda4af;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .panic-btn:hover {
+      background: #e11d48;
+      color: #ffffff;
+    }
+    .panic-active-row {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #fda4af;
+      font-weight: 700;
+    }
+    .panic-active-row.show { display: flex; }
 
     /* Navigation Tabs */
     .tabs {
@@ -97,11 +263,11 @@
       background: #1e293b;
       padding: 3px;
       border-radius: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .tab-btn {
       flex: 1;
-      padding: 6px 3px;
+      padding: 5px 3px;
       text-align: center;
       border: none;
       background: transparent;
@@ -118,55 +284,43 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
-    /* Rules Tab */
     .row {
       display: flex;
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     input[type="text"], input[type="number"] {
-      padding: 7px 9px;
+      padding: 6px 8px;
       border-radius: 4px;
       border: 1px solid #334155;
       background: #1e293b;
       color: #f8fafc;
       font-size: 12px;
       outline: none;
-      transition: border-color 0.15s ease;
     }
-    input[type="text"]:focus, input[type="number"]:focus {
-      border-color: #38bdf8;
-    }
-    input::placeholder {
-      color: #64748b;
-    }
+    input[type="text"]:focus, input[type="number"]:focus { border-color: #38bdf8; }
+    input:disabled, select:disabled { opacity: 0.55; cursor: not-allowed; }
     button.add-btn {
-      padding: 7px 12px;
+      padding: 6px 11px;
       border: none;
       border-radius: 4px;
       background: #0284c7;
       color: #ffffff;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s ease;
-      white-space: nowrap;
     }
-    button.add-btn:hover {
-      background: #0369a1;
-    }
+    button.add-btn:hover:not(:disabled) { background: #0369a1; }
+    button.add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
     ul {
       list-style: none;
       padding: 0;
       margin: 0;
-      max-height: 200px;
+      max-height: 155px;
       overflow-y: auto;
     }
     li {
@@ -174,82 +328,60 @@
       justify-content: space-between;
       align-items: center;
       background: #1e293b;
-      padding: 8px 10px;
+      padding: 6px 9px;
       border-radius: 4px;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       border: 1px solid #334155;
-      font-size: 12px;
+      font-size: 11.5px;
       line-height: 1.35;
       gap: 8px;
     }
-    .rule-text {
-      flex: 1;
-      word-break: break-word;
-    }
+    .rule-text { flex: 1; word-break: break-word; }
     .del-btn {
       background: transparent;
       border: none;
       color: #f87171;
-      padding: 2px 6px;
-      font-size: 16px;
+      padding: 2px 5px;
+      font-size: 15px;
       cursor: pointer;
       line-height: 1;
-      border-radius: 2px;
-      opacity: 0.8;
-      transition: opacity 0.15s ease, background 0.15s ease;
     }
-    .del-btn:hover {
-      opacity: 1;
-      background: rgba(239, 68, 68, 0.15);
-    }
+    .del-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    /* Risk & Settings Tab */
-    .form-group {
-      margin-bottom: 10px;
-    }
+    .form-group { margin-bottom: 8px; }
     .form-label {
       display: flex;
       justify-content: space-between;
-      align-items: center;
       font-size: 11px;
       font-weight: 600;
       color: #94a3b8;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
-    .form-input-full {
-      width: 100%;
-    }
+    .form-input-full { width: 100%; }
     .form-row {
       display: flex;
       gap: 8px;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 0;
+      padding: 5px 0;
       border-bottom: 1px solid #1e293b;
     }
-    .form-row:last-child {
-      border-bottom: none;
-    }
-    .form-subtext {
-      font-size: 10.5px;
-      color: #64748b;
-      margin-top: 2px;
-    }
+    .form-row:last-child { border-bottom: none; }
+    .form-subtext { font-size: 10px; color: #64748b; margin-top: 1px; }
 
-    /* Journal Tab */
     .journal-list {
-      max-height: 205px;
+      max-height: 155px;
       overflow-y: auto;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       font-family: monospace;
-      font-size: 11px;
+      font-size: 10.5px;
     }
     .journal-item {
       background: #1e293b;
       border: 1px solid #334155;
       border-radius: 4px;
-      padding: 7px 9px;
-      margin-bottom: 6px;
+      padding: 6px 8px;
+      margin-bottom: 5px;
     }
     .journal-top {
       display: flex;
@@ -259,17 +391,14 @@
     }
     .journal-meta {
       display: flex;
-      gap: 6px;
+      flex-wrap: wrap;
+      gap: 5px;
       margin-top: 3px;
       color: #94a3b8;
-      font-size: 10px;
+      font-size: 9.5px;
     }
-    .badge-buy {
-      color: #10b981;
-    }
-    .badge-sell {
-      color: #ef4444;
-    }
+    .badge-buy { color: #10b981; }
+    .badge-sell { color: #ef4444; }
     .tag-badge {
       background: #334155;
       color: #e2e8f0;
@@ -277,69 +406,24 @@
       border-radius: 3px;
     }
 
-    /* Guide Tab */
-    .guide-section {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 9px 11px;
-      margin-bottom: 7px;
-    }
-    .guide-title {
-      font-size: 11.5px;
-      font-weight: 700;
-      color: #38bdf8;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
-    }
-    .guide-body {
-      font-size: 11px;
-      color: #cbd5e1;
-      line-height: 1.45;
-    }
-    .kbd-chip {
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #f8fafc;
-      font-family: monospace;
-      font-size: 10px;
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-weight: bold;
-    }
-
     .btn-secondary {
       background: #1e293b;
       color: #cbd5e1;
       border: 1px solid #334155;
-      padding: 6px 10px;
+      padding: 6px 9px;
       border-radius: 4px;
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s ease;
     }
-    .btn-secondary:hover {
-      background: #334155;
-      color: #ffffff;
-    }
-    .journal-actions {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-    }
+    .btn-secondary:hover { background: #334155; color: #ffffff; }
+    .journal-actions { display: flex; gap: 6px; }
 
     .status {
-      font-size: 10.5px;
+      font-size: 10px;
       color: #64748b;
-      margin-top: 10px;
+      margin-top: 9px;
       text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
     }
   </style>
 </head>
@@ -349,46 +433,106 @@
       <svg class="shield-icon" viewBox="0 0 24 24">
         <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
       </svg>
-      <h2>TradeGuard v1.2.3</h2>
-      <span class="launch-badge">All Free</span>
+      <h2>TradeKavach+</h2>
+      <span class="version-badge">v1.3</span>
     </div>
     <label class="toggle-label" id="toggleLabel">
       <input type="checkbox" id="guardEnabled" checked> Active
     </label>
   </div>
 
+  <!-- Quick Links to Full-Tab Pages -->
+  <div class="quick-nav">
+    <button type="button" class="nav-pill" id="openDashboardBtn">📊 Dashboard</button>
+    <button type="button" class="nav-pill" id="openOptionsBtn">⚙️ Settings</button>
+    <button type="button" class="nav-pill" id="openWelcomeBtn">🎓 Tour</button>
+  </div>
+
   <div class="toast-banner" id="toastBanner"></div>
+  <div class="session-lock-banner" id="sessionLockBanner">
+    🔒 Session Commitment Lock active until 3:30 PM IST — rules &amp; limits cannot be weakened.
+  </div>
+
+  <!-- Quick Mood Check-In -->
+  <div class="card-box">
+    <div class="box-head">
+      <span>How is your mindset right now?</span>
+      <span class="box-sub" id="activeMoodLabel">Calm</span>
+    </div>
+    <div class="mood-pills" id="moodPills">
+      <button type="button" class="mood-btn" data-mood="Calm">Calm 🧘</button>
+      <button type="button" class="mood-btn" data-mood="Focused">Focused 🎯</button>
+      <button type="button" class="mood-btn" data-mood="Anxious">Anxious 😰</button>
+      <button type="button" class="mood-btn warn" data-mood="FOMO">FOMO 🚀</button>
+      <button type="button" class="mood-btn warn" data-mood="Revenge">Revenge 😡</button>
+    </div>
+  </div>
+
+  <!-- Today's Mini Stats -->
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-val" id="statTodayTrades">0 / 5</div>
+      <div class="stat-label">Trades Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statSkipped">0</div>
+      <div class="stat-label">Skipped [Esc]</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statNetPnl">₹0</div>
+      <div class="stat-label">Logged P&amp;L</div>
+    </div>
+  </div>
+
+  <!-- Panic Self-Lockout -->
+  <div class="panic-card" id="panicCard">
+    <div class="box-head" style="margin-bottom:5px;">
+      <span>🛑 Stop Myself</span>
+      <span class="box-sub">Exits stay unlocked</span>
+    </div>
+    <div class="panic-controls" id="panicControlsRow">
+      <select class="panic-select" id="panicDurationSelect">
+        <option value="15">15 Minutes</option>
+        <option value="30">30 Minutes</option>
+        <option value="60" selected>1 Hour</option>
+        <option value="eod">Until 3:30 PM IST</option>
+      </select>
+      <button type="button" class="panic-btn" id="panicLockBtn">Lock Me Out</button>
+    </div>
+    <div class="panic-active-row" id="panicActiveRow">
+      <span id="panicTimerText">Entries Locked: --:--</span>
+      <span style="font-size:10px; color:#cbd5e1; font-weight:500;">Exit / Sq-Off Allowed</span>
+    </div>
+  </div>
 
   <!-- Navigation Tabs -->
   <div class="tabs">
     <button type="button" class="tab-btn active" data-tab="tabRules">Rules</button>
     <button type="button" class="tab-btn" data-tab="tabRisk">Risk</button>
     <button type="button" class="tab-btn" data-tab="tabJournal">Journal</button>
-    <button type="button" class="tab-btn" data-tab="tabGuide">Guide ℹ️</button>
   </div>
 
   <!-- TAB 1: Rules -->
   <div class="tab-content active" id="tabRules">
     <div class="row">
       <input type="text" id="newRuleInput" placeholder="Add pre-trade rule (up to 20)..." maxlength="90" style="flex:1;">
-      <button class="add-btn" id="addRuleBtn">Add</button>
+      <button type="button" class="add-btn" id="addRuleBtn">Add</button>
     </div>
 
-    <div id="emptyNotice" style="display: none; padding: 14px 8px; text-align: center; color: #64748b; font-size: 11.5px; border: 1px dashed #334155; border-radius: 4px; margin-bottom: 8px;">
-      No checklist rules active. Add a rule above to guard your trades.
+    <div id="emptyNotice" style="display: none; padding: 12px 8px; text-align: center; color: #64748b; font-size: 11px; border: 1px dashed #334155; border-radius: 4px; margin-bottom: 8px;">
+      No checklist rules active. Add a rule above or pick a preset in Settings.
     </div>
 
     <ul id="rulesList"></ul>
   </div>
 
-  <!-- TAB 2: Risk & Cooldown -->
+  <!-- TAB 2: Risk & Limits -->
   <div class="tab-content" id="tabRisk">
     <div class="form-group">
       <label class="form-label">
-        <span>Trading Capital (₹ / $)</span>
+        <span>Trading Capital (₹)</span>
       </label>
-      <input type="number" id="capitalInput" class="form-input-full" placeholder="e.g. 200000" min="1000" step="5000">
-      <div class="form-subtext">Used to validate your 1% risk rule during order popup.</div>
+      <input type="number" id="capitalInput" class="form-input-full" placeholder="200000" min="1000" step="5000">
     </div>
 
     <div class="form-group">
@@ -396,95 +540,48 @@
         <span>Max Risk Per Trade (%)</span>
       </label>
       <input type="number" id="maxRiskInput" class="form-input-full" placeholder="1.0" min="0.1" max="10" step="0.1">
-      <div class="form-subtext">Warns if Stop-Loss risk exceeds this percentage.</div>
     </div>
 
     <div class="form-row">
       <div>
-        <div style="font-weight: 600; font-size: 11.5px; display:flex; align-items:center; gap:5px;">
-          <span>Revenge-Trade Cooldown</span>
-        </div>
-        <div class="form-subtext">Enforces breathing period after position exit.</div>
+        <div style="font-weight: 600; font-size: 11px;">Revenge-Trade Cooldown</div>
+        <div class="form-subtext">After position exit</div>
       </div>
       <select id="cooldownSelect" style="background:#1e293b; color:#f8fafc; border:1px solid #334155; padding:4px 6px; border-radius:4px; font-size:11px;">
         <option value="0">Off</option>
-        <option value="1">1 Minute</option>
-        <option value="3" selected>3 Minutes</option>
-        <option value="5">5 Minutes</option>
+        <option value="1">1 Min</option>
+        <option value="3">3 Min</option>
+        <option value="5">5 Min</option>
       </select>
     </div>
 
     <div class="form-row">
       <div>
-        <div style="font-weight: 600; font-size: 11.5px;">Max Daily Trades Cap</div>
-        <div class="form-subtext">Protects against overtrading chop.</div>
+        <div style="font-weight: 600; font-size: 11px;">Max Daily Trades Cap</div>
+        <div class="form-subtext">Blocks excess entries</div>
       </div>
       <input type="number" id="maxTradesInput" placeholder="5" min="1" max="50" style="width:55px; text-align:center;">
     </div>
+
+    <button type="button" class="btn-secondary" id="openMoreSettingsBtn" style="width:100%; margin-top:8px;">
+      Open 9:15 AM Guard, Presets &amp; Session Lock ⚙️
+    </button>
   </div>
 
-  <!-- TAB 3: Trade Journal -->
+  <!-- TAB 3: Recent Journal -->
   <div class="tab-content" id="tabJournal">
     <div class="journal-list" id="journalList">
-      <div style="text-align: center; color: #64748b; padding: 20px 0;">No trades logged yet.</div>
+      <div style="text-align: center; color: #64748b; padding: 18px 0;">No trades logged yet.</div>
     </div>
 
     <div class="journal-actions">
       <button type="button" class="btn-secondary" id="exportCsvBtn" style="flex:1;">⬇ Export CSV</button>
-      <button type="button" class="btn-secondary" id="clearJournalBtn" style="color:#f87171;">Clear Log</button>
+      <button type="button" class="btn-secondary" id="openFullJournalBtn">Analytics 📊</button>
+      <button type="button" class="btn-secondary" id="clearJournalBtn" style="color:#f87171;">Clear</button>
     </div>
   </div>
 
-  <!-- TAB 4: Feature Guide & Help -->
-  <div class="tab-content" id="tabGuide">
-    <div style="max-height: 250px; overflow-y: auto; padding-right: 2px;">
-      <div class="guide-section">
-        <div class="guide-title">🛡️ How It Intercepts Orders</div>
-        <div class="guide-body">
-          TradeGuard monitors clicks strictly on supported trading terminals at capture level (<span class="kbd-chip">useCapture: true</span>). When you click <em>Buy</em>, <em>Sell</em>, or <em>Square Off</em>, the order is paused immediately before broker handlers execute.
-        </div>
-      </div>
-
-      <div class="guide-section">
-        <div class="guide-title">🧮 Live 1% Risk Sizing</div>
-        <div class="guide-body">
-          Inside the gatekeeper modal, enter your intended Stop-Loss. TradeGuard calculates <span class="kbd-chip">Risk = |Price - SL| × Qty</span> and displays a live <strong>Safe (&lt; 1%)</strong> or <strong>Excessive Risk</strong> alert based on your Capital.
-        </div>
-      </div>
-
-      <div class="guide-section">
-        <div class="guide-title">🧘 Revenge-Trade Cooldown</div>
-        <div class="guide-body">
-          Exiting or squaring off a position starts an anti-revenge breathing window (1m, 3m, or 5m). If you try to jump right back in, TradeGuard displays a guided breathing screen to enforce emotional discipline.
-        </div>
-      </div>
-
-      <div class="guide-section">
-        <div class="guide-title">🏷️ Strategy &amp; Mindset Tags</div>
-        <div class="guide-body">
-          Select your setup (<em>Breakout</em>, <em>Pullback</em>, <em>VWAP</em>, <em>Scalp</em>) in 1 click before confirming and export your full log as CSV anytime.
-        </div>
-      </div>
-
-      <div class="guide-section">
-        <div class="guide-title">⌨️ Keyboard Shortcuts</div>
-        <div class="guide-body">
-          • <span class="kbd-chip">1</span> to <span class="kbd-chip">5</span>: Toggle checklist rules<br>
-          • <span class="kbd-chip">Enter</span>: Submit verified order<br>
-          • <span class="kbd-chip">Esc</span>: Abort order safely (0 risk) / dismiss cooldown
-        </div>
-      </div>
-
-      <div class="guide-section">
-        <div class="guide-title">🔒 Trading-Sites Only &amp; 100% Privacy</div>
-        <div class="guide-body">
-          Runs strictly on supported trading platforms (TradingView charts, Dhan, Kite, ICICI Direct, SBI Securities, Groww, Sahi, Fyers, Upstox, Angel One, Kotak Neo, HDFC Sky, 5paisa, AliceBlue, Paytm Money, Shoonya, Delta) — never on general websites.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="status">Trading Terminals Only • Zero Broker API Keys</div>
+  <div class="status">100% Local Storage • Trading Terminals Only • Zero APIs</div>
 
   <script src="popup.js"></script>
 </body>

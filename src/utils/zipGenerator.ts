@@ -139,10 +139,10 @@ function createGatekeeperScreenshotBlob(): Promise<Blob> {
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('TradeGuard — Pre-Trade Discipline Gatekeeper', 640, 74);
+    ctx.fillText('TradeKavach+ — Pre-Trade Discipline Gatekeeper', 640, 74);
     ctx.fillStyle = '#94a3b8';
     ctx.font = '18px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-    ctx.fillText('Intercepts Buy, Sell & Square-Off clicks before broker dispatch • Zero Broker API Keys', 640, 108);
+    ctx.fillText('Intercepts Buy, Sell & Square-Off clicks before broker dispatch • 1% Risk & 9:15 AM IST Guard', 640, 108);
 
     // Center Gatekeeper Card
     const cardX = 350;
@@ -160,7 +160,7 @@ function createGatekeeperScreenshotBlob(): Promise<Blob> {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-    ctx.fillText('TradeGuard Gatekeeper', cardX + 28, cardY + 46);
+    ctx.fillText('TradeKavach+ Gatekeeper', cardX + 28, cardY + 46);
     drawRoundedRect(ctx, cardX + cardW - 98, cardY + 22, 70, 30, 6);
     ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
     ctx.fill();
@@ -293,45 +293,45 @@ function createPopupFeaturesScreenshotBlob(): Promise<Blob> {
     ctx.fillStyle = '#f8fafc';
     ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('All-In-One Pre-Trade Risk Engine, Cooldown Breaker & Journal', 640, 78);
+    ctx.fillText('TradeKavach+: Risk Engine, Panic Lockout & Local Analytics', 640, 78);
     ctx.fillStyle = '#38bdf8';
     ctx.font = '18px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-    ctx.fillText('100% Client-Side Privacy · Zero Broker APIs · 60 FPS Canvas Performance', 640, 112);
+    ctx.fillText('100% Client-Side Privacy · Zero Broker APIs · 60 FPS Chart Performance', 640, 112);
 
     const panels = [
       {
-        title: '1. Custom Checklist Rules',
+        title: '1. Custom Rules & Presets',
         badge: 'Up to 20 Rules',
         color: '#38bdf8',
         lines: [
-          '✓ Stop-Loss defined before entry',
-          '✓ Max 1% capital risk verified',
-          '✓ Higher-timeframe trend aligned',
-          '✓ Rapid 1-5 keyboard shortcuts',
-          '✓ Enter to execute · Esc to abort'
+          '✓ Stop-Loss & 1% Risk verified',
+          '✓ Strict excess-risk confirmation',
+          '✓ F&O, Equity & Swing presets',
+          '✓ Rapid 1-5 & Enter shortcuts',
+          '✓ Esc aborts with ₹0 capital risk'
         ]
       },
       {
-        title: '2. Anti-Revenge Cooldown',
-        badge: '1m / 3m / 5m',
+        title: '2. Panic Lock & Opening Guard',
+        badge: 'Safe Exits Open',
         color: '#10b981',
         lines: [
-          '🧘 Auto-starts after position exits',
-          '• Visual breathing timer overlay',
-          '• Blocks impulsive FOMO re-entries',
-          '• Protects against overtrading chop',
-          '• Configurable daily trade cap'
+          '🛑 Stop Myself (15m to 3:30 PM)',
+          '⚡ 9:15–9:30 AM IST Chop Guard',
+          '🔒 Session Lock until market close',
+          '🧘 Anti-revenge cooldown timer',
+          '✓ Exits & Square-Off never blocked'
         ]
       },
       {
-        title: '3. Local Trade Journal',
-        badge: '1-Click CSV Export',
+        title: '3. Local Analytics Dashboard',
+        badge: 'CSV & JSON Export',
         color: '#a78bfa',
         lines: [
-          'BUY 75x NIFTY @ ₹142.50 [Breakout]',
-          'SELL 75x NIFTY @ ₹168.00 [Target]',
-          '• Records SL, ₹ Risk & Setup Tag',
-          '• Stored locally in Chrome only',
+          '📊 Win Rate by Mood & Setup Tag',
+          '• Tracks Trades Skipped via [Esc]',
+          '• Inline WIN / LOSS & ₹ P&L editor',
+          '• Stored strictly in local browser',
           '• Export CSV to Excel / Sheets'
         ]
       }
@@ -405,7 +405,7 @@ function createSmallPromoTileBlob(): Promise<Blob> {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-    ctx.fillText('TradeGuard', 220, 108);
+    ctx.fillText('TradeKavach+', 220, 108);
 
     ctx.fillStyle = '#f8fafc';
     ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
@@ -413,7 +413,7 @@ function createSmallPromoTileBlob(): Promise<Blob> {
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-    ctx.fillText('1% Risk Check · Revenge Cooldown · CSV Journal', 220, 178);
+    ctx.fillText('1% Risk Guard · Panic Lock · Analytics', 220, 178);
 
     drawRoundedRect(ctx, 115, 202, 210, 32, 16);
     ctx.fillStyle = 'rgba(16, 185, 129, 0.16)';
@@ -430,21 +430,21 @@ function createSmallPromoTileBlob(): Promise<Blob> {
 }
 
 export const WEBSTORE_COPY_TEXT = {
-  detailedDescription: `TradeGuard is a zero-API, 100% client-side behavioral checklist for active web traders. It pauses Buy, Sell, and Square-Off order clicks before they reach your broker so you avoid emotional or oversized trades.
+  detailedDescription: `TradeKavach+ is a zero-API, 100% client-side pre-trade discipline gatekeeper for active web traders. It pauses impulsive order clicks before broker dispatch so you stick to your Stop-Loss, risk limits, and trading plan.
 
 KEY FEATURES:
-• Pre-Trade Discipline Checklist: Configure up to 20 custom rules and verify them rapidly using keys 1–5 and Enter, or press Esc to abort with zero capital risked.
-• Live 1% Stop-Loss Risk Calculator: Reads symbol, price, and quantity directly from your order window to display real-time Stop-Loss risk and percentage of capital.
-• Revenge-Trade Cooldown Breaker: Automatically starts a guided breathing cooldown (1, 3, or 5 minutes) after position exits to help prevent impulsive re-entries.
-• Setup Tags & Local CSV Journal: Tag trades by setup and mindset, and export your local log to a CSV file for Excel or Google Sheets.
-• Lightweight & Terminal-Scoped: Activates only on supported web charting and trading order pages, with an instant canvas bypass to keep chart scrolling smooth.
+• Pre-Trade Discipline Checklist & Tour: Configure up to 20 custom rules (or start with F&O, Intraday Equity, and Swing presets) and verify them via keys 1–5 and Enter, or press Esc to abort cleanly.
+• Live 1% Stop-Loss Risk Guard: Reads symbol, price, and quantity on your order screen to display real-time risk and require confirmation before oversized risk orders.
+• 9:15–9:30 AM IST Opening Volatility Guard & Panic Lockout: Warns during volatile market-open minutes and lets you pause new entries for 15m, 30m, 1h, or until market close while always keeping Exit / Square-Off orders accessible.
+• Revenge-Trade Cooldown & Mindset Check-In: Starts an anti-revenge breathing cooldown after exits and logs your emotional state before entry.
+• Local Analytics Dashboard & CSV Export: Review win rates by mindset and setup tag, log outcomes inline, and export your journal to CSV or JSON anytime.
 
 PRIVACY FIRST:
-Zero broker API keys, zero broker passwords, zero external servers, and zero tracking. All preferences and trade logs remain strictly inside local browser storage on your device.`,
+Zero broker API keys, zero broker passwords, zero external servers, and zero tracking. Everything stays strictly inside your local browser storage.`,
   singlePurpose:
-    'Enforces a client-side pre-trade discipline checklist, 1% Stop-Loss risk check, and anti-revenge cooling-off timer before order clicks execute on supported web trading terminals.',
+    'Enforces a client-side pre-trade discipline checklist, 1% Stop-Loss risk check, opening volatility caution, and optional entry lockout before order clicks execute on supported web trading terminals.',
   storageJustification:
-    'Used strictly to store the user’s checklist rules, risk capital settings, cooling-off timer preference, and local CSV trade journal entries on-device via chrome.storage.local.',
+    'Used strictly to store the user’s checklist rules, capital risk limits, cooldown state, mindset check-ins, and local trade journal analytics on-device via chrome.storage.local.',
   hostJustification:
     'Host access is strictly restricted to supported financial charting and broker web-terminal URLs so the DOM order-confirmation overlay only runs on active trading screens and never on general websites.',
   privacyNote:
@@ -483,7 +483,7 @@ export async function downloadStoreAssetsZip(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'tradeguard-webstore-assets.zip';
+  a.download = 'tradekavach-plus-webstore-assets.zip';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -498,11 +498,9 @@ export async function downloadExtensionZip(onProgress?: (msg: string) => void): 
 
   const zip = new JSZip();
 
-  zip.file('manifest.json', EXTENSION_FILES['manifest.json']);
-  zip.file('content.js', EXTENSION_FILES['content.js']);
-  zip.file('popup.html', EXTENSION_FILES['popup.html']);
-  zip.file('popup.js', EXTENSION_FILES['popup.js']);
-  zip.file('README.md', EXTENSION_FILES['README.md']);
+  (Object.entries(EXTENSION_FILES) as [string, string][]).forEach(([fileName, content]) => {
+    zip.file(fileName, content);
+  });
 
   const iconsFolder = zip.folder('icons');
   if (iconsFolder) {
@@ -523,7 +521,7 @@ export async function downloadExtensionZip(onProgress?: (msg: string) => void): 
   const url = URL.createObjectURL(zipBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'tradeguard-extension-v1.2.3.zip';
+  a.download = 'tradekavach-plus-v1.3.0.zip';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

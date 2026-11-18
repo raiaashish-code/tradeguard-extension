@@ -4,7 +4,6 @@ const DEFAULT_RULES = [
   "Is this setup aligned with the higher-timeframe trend (No FOMO)?"
 ];
 
-// Elements
 const guardEnabledEl = document.getElementById("guardEnabled");
 const toggleLabel = document.getElementById("toggleLabel");
 const newRuleInput = document.getElementById("newRuleInput");
@@ -24,10 +23,46 @@ const clearJournalBtn = document.getElementById("clearJournalBtn");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const tabContents = document.querySelectorAll(".tab-content");
 const toastBanner = document.getElementById("toastBanner");
+const sessionLockBanner = document.getElementById("sessionLockBanner");
 
-let currentRulesState = DEFAULT_RULES;
+const moodButtons = document.querySelectorAll(".mood-btn");
+const activeMoodLabel = document.getElementById("activeMoodLabel");
+
+const statTodayTrades = document.getElementById("statTodayTrades");
+const statSkipped = document.getElementById("statSkipped");
+const statNetPnl = document.getElementById("statNetPnl");
+
+const panicCard = document.getElementById("panicCard");
+const panicControlsRow = document.getElementById("panicControlsRow");
+const panicActiveRow = document.getElementById("panicActiveRow");
+const panicDurationSelect = document.getElementById("panicDurationSelect");
+const panicLockBtn = document.getElementById("panicLockBtn");
+const panicTimerText = document.getElementById("panicTimerText");
+
+const openDashboardBtn = document.getElementById("openDashboardBtn");
+const openOptionsBtn = document.getElementById("openOptionsBtn");
+const openWelcomeBtn = document.getElementById("openWelcomeBtn");
+const openMoreSettingsBtn = document.getElementById("openMoreSettingsBtn");
+const openFullJournalBtn = document.getElementById("openFullJournalBtn");
+
 let toastTimer = null;
 let confirmClearTimer = null;
+let panicInterval = null;
+let sessionLocked = false;
+
+function openExtensionPage(page) {
+  if (typeof chrome !== "undefined" && chrome.tabs && chrome.runtime && chrome.runtime.getURL) {
+    chrome.tabs.create({ url: chrome.runtime.getURL(page) });
+  } else {
+    showToast(`Open chrome-extension://${page} in Chrome.`);
+  }
+}
+
+if (openDashboardBtn) openDashboardBtn.addEventListener("click", () => openExtensionPage("dashboard.html"));
+if (openFullJournalBtn) openFullJournalBtn.addEventListener("click", () => openExtensionPage("dashboard.html"));
+if (openOptionsBtn) openOptionsBtn.addEventListener("click", () => openExtensionPage("options.html"));
+if (openMoreSettingsBtn) openMoreSettingsBtn.addEventListener("click", () => openExtensionPage("options.html"));
+if (openWelcomeBtn) openWelcomeBtn.addEventListener("click", () => openExtensionPage("welcome.html"));
 
 function showToast(msg, isWarn = false) {
   if (!toastBanner) return;
@@ -36,32 +71,123 @@ function showToast(msg, isWarn = false) {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toastBanner.classList.remove("show");
-  }, 3200);
+  }, 3000);
 }
 
-// Tab Switching
-tabButtons.forEach(btn => {
+tabButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
-    tabButtons.forEach(b => b.classList.remove("active"));
-    tabContents.forEach(c => c.classList.remove("active"));
+    tabButtons.forEach((b) => b.classList.remove("active"));
+    tabContents.forEach((c) => c.classList.remove("active"));
     btn.classList.add("active");
     const target = document.getElementById(btn.dataset.tab);
     if (target) target.classList.add("active");
   });
 });
 
+function getNext330PmIstMs() {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istNow = new Date(utcMs + 330 * 60000);
+  const targetIst = new Date(istNow);
+  targetIst.setHours(15, 30, 0, 0);
+  if (targetIst.getTime() <= istNow.getTime()) {
+    targetIst.setDate(targetIst.getDate() + 1);
+  }
+  return Date.now() + (targetIst.getTime() - istNow.getTime());
+}
+
+function formatDuration(ms) {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) {
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function formatInr(amount) {
+  const n = Math.round(Number(amount) || 0);
+  if (n > 0) return "+₹" + n.toLocaleString("en-IN");
+  if (n < 0) return "-₹" + Math.abs(n).toLocaleString("en-IN");
+  return "₹0";
+}
+
 function updateToggleLabelState(isActive) {
   if (toggleLabel) {
-    if (isActive) {
-      toggleLabel.classList.add("active");
-    } else {
-      toggleLabel.classList.remove("active");
+    toggleLabel.classList.toggle("active", Boolean(isActive));
+  }
+}
+
+function applySessionLockUI(lockUntil) {
+  sessionLocked = Boolean(lockUntil && lockUntil > Date.now());
+  if (sessionLockBanner) {
+    sessionLockBanner.classList.toggle("show", sessionLocked);
+  }
+  if (guardEnabledEl) guardEnabledEl.disabled = sessionLocked;
+  if (capitalInput) capitalInput.disabled = sessionLocked;
+  if (maxRiskInput) maxRiskInput.disabled = sessionLocked;
+  if (cooldownSelect) cooldownSelect.disabled = sessionLocked;
+  if (maxTradesInput) maxTradesInput.disabled = sessionLocked;
+}
+
+function updatePanicUI(panicLockUntil) {
+  if (panicInterval) {
+    clearInterval(panicInterval);
+    panicInterval = null;
+  }
+
+  function tick() {
+    const remaining = (panicLockUntil || 0) - Date.now();
+    const locked = remaining > 0;
+    if (panicCard) panicCard.classList.toggle("locked", locked);
+    if (panicControlsRow) panicControlsRow.style.display = locked ? "none" : "flex";
+    if (panicActiveRow) panicActiveRow.classList.toggle("show", locked);
+    if (locked && panicTimerText) {
+      panicTimerText.textContent = `Entries Locked: ${formatDuration(remaining)}`;
+    } else if (!locked && panicInterval) {
+      clearInterval(panicInterval);
+      panicInterval = null;
     }
+  }
+
+  tick();
+  if (panicLockUntil && panicLockUntil > Date.now()) {
+    panicInterval = setInterval(tick, 1000);
+  }
+}
+
+function renderMood(mood) {
+  const active = mood || "Calm";
+  if (activeMoodLabel) activeMoodLabel.textContent = active;
+  moodButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mood === active);
+  });
+}
+
+function renderStats(data) {
+  const journal = Array.isArray(data.tradeJournal) ? data.tradeJournal : [];
+  const todayStr = new Date().toDateString();
+  const todayCount = journal.filter((t) => {
+    try {
+      return new Date(t.timestamp).toDateString() === todayStr;
+    } catch (_) {
+      return false;
+    }
+  }).length;
+  const maxCap = data.maxTradesPerDay || 5;
+  if (statTodayTrades) statTodayTrades.textContent = `${todayCount} / ${maxCap}`;
+  if (statSkipped) statSkipped.textContent = String(data.tradesSkipped || 0);
+
+  const netPnl = journal.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
+  if (statNetPnl) {
+    statNetPnl.textContent = formatInr(netPnl);
+    statNetPnl.className = "stat-val" + (netPnl > 0 ? " pos" : netPnl < 0 ? " neg" : "");
   }
 }
 
 function renderRules(rules) {
-  currentRulesState = rules || [];
   rulesList.innerHTML = "";
   if (!rules || rules.length === 0) {
     if (emptyNotice) emptyNotice.style.display = "block";
@@ -77,14 +203,19 @@ function renderRules(rules) {
     span.textContent = `${index + 1}. ${rule}`;
 
     const delBtn = document.createElement("button");
+    delBtn.type = "button";
     delBtn.textContent = "×";
     delBtn.className = "del-btn";
-    delBtn.title = "Delete rule";
-    delBtn.onclick = () => {
+    delBtn.title = sessionLocked ? "Locked during session commitment" : "Delete rule";
+    delBtn.disabled = sessionLocked;
+    delBtn.addEventListener("click", () => {
+      if (sessionLocked) {
+        showToast("Session Commitment Lock is active until 3:30 PM IST.", true);
+        return;
+      }
       const updated = rules.filter((_, i) => i !== index);
-      saveData({ rules: updated });
-      renderRules(updated);
-    };
+      saveData({ rules: updated }, () => renderRules(updated));
+    });
 
     li.append(span, delBtn);
     rulesList.appendChild(li);
@@ -94,14 +225,18 @@ function renderRules(rules) {
 function renderJournal(trades) {
   journalList.innerHTML = "";
   if (!trades || trades.length === 0) {
-    journalList.innerHTML = `<div style="text-align: center; color: #64748b; padding: 20px 0;">No trades logged yet.</div>`;
+    journalList.innerHTML = `<div style="text-align: center; color: #64748b; padding: 18px 0;">No trades logged yet.</div>`;
     return;
   }
 
-  trades.slice().reverse().forEach(t => {
+  trades.slice().reverse().slice(0, 30).forEach((t) => {
     const item = document.createElement("div");
     item.className = "journal-item";
     const sideClass = t.side === "BUY" ? "badge-buy" : "badge-sell";
+    const outcomeBadge =
+      t.outcome && t.outcome !== "OPEN"
+        ? `<span class="tag-badge">${t.outcome}${t.pnl ? ` (${formatInr(t.pnl)})` : ""}</span>`
+        : "";
     item.innerHTML = `
       <div class="journal-top">
         <span class="${sideClass}">${t.side} ${t.quantity}x ${t.symbol}</span>
@@ -112,24 +247,29 @@ function renderJournal(trades) {
         ${t.strategyTag ? `<span class="tag-badge">${t.strategyTag}</span>` : ""}
         ${t.mindsetTag ? `<span class="tag-badge">${t.mindsetTag}</span>` : ""}
         ${t.riskAmount ? `<span style="color:#38bdf8;">Risk: ₹${t.riskAmount}</span>` : ""}
+        ${outcomeBadge}
       </div>
     `;
     journalList.appendChild(item);
   });
 }
 
-// Storage abstraction
 function loadData(callback) {
+  const defaults = {
+    rules: DEFAULT_RULES,
+    enabled: true,
+    capital: 200000,
+    maxRiskPercent: 1.0,
+    cooldownMinutes: 3,
+    maxTradesPerDay: 5,
+    panicLockUntil: 0,
+    sessionLockUntil: 0,
+    currentMood: "Calm",
+    tradesSkipped: 0,
+    tradeJournal: []
+  };
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-    chrome.storage.local.get({
-      rules: DEFAULT_RULES,
-      enabled: true,
-      capital: 200000,
-      maxRiskPercent: 1.0,
-      cooldownMinutes: 3,
-      maxTradesPerDay: 5,
-      tradeJournal: []
-    }, callback);
+    chrome.storage.local.get(defaults, callback);
   } else {
     callback({
       rules: JSON.parse(localStorage.getItem("tradeguard_rules") || JSON.stringify(DEFAULT_RULES)),
@@ -138,6 +278,10 @@ function loadData(callback) {
       maxRiskPercent: Number(localStorage.getItem("tradeguard_maxrisk") || "1.0"),
       cooldownMinutes: Number(localStorage.getItem("tradeguard_cooldown") || "3"),
       maxTradesPerDay: Number(localStorage.getItem("tradeguard_maxtrades") || "5"),
+      panicLockUntil: Number(localStorage.getItem("tradekavach_panic_until") || "0"),
+      sessionLockUntil: Number(localStorage.getItem("tradekavach_session_lock_until") || "0"),
+      currentMood: localStorage.getItem("tradekavach_mood") || "Calm",
+      tradesSkipped: Number(localStorage.getItem("tradekavach_skipped") || "0"),
       tradeJournal: JSON.parse(localStorage.getItem("tradeguard_journal") || "[]")
     });
   }
@@ -149,38 +293,81 @@ function saveData(data, callback) {
   } else {
     if (data.rules) localStorage.setItem("tradeguard_rules", JSON.stringify(data.rules));
     if (typeof data.enabled === "boolean") localStorage.setItem("tradeguard_enabled", data.enabled ? "true" : "false");
-    if (data.capital) localStorage.setItem("tradeguard_capital", String(data.capital));
-    if (data.maxRiskPercent) localStorage.setItem("tradeguard_maxrisk", String(data.maxRiskPercent));
+    if (data.capital !== undefined) localStorage.setItem("tradeguard_capital", String(data.capital));
+    if (data.maxRiskPercent !== undefined) localStorage.setItem("tradeguard_maxrisk", String(data.maxRiskPercent));
     if (data.cooldownMinutes !== undefined) localStorage.setItem("tradeguard_cooldown", String(data.cooldownMinutes));
-    if (data.maxTradesPerDay) localStorage.setItem("tradeguard_maxtrades", String(data.maxTradesPerDay));
+    if (data.maxTradesPerDay !== undefined) localStorage.setItem("tradeguard_maxtrades", String(data.maxTradesPerDay));
+    if (data.panicLockUntil !== undefined) localStorage.setItem("tradekavach_panic_until", String(data.panicLockUntil));
+    if (data.sessionLockUntil !== undefined) localStorage.setItem("tradekavach_session_lock_until", String(data.sessionLockUntil));
+    if (data.currentMood) localStorage.setItem("tradekavach_mood", data.currentMood);
     if (data.tradeJournal) localStorage.setItem("tradeguard_journal", JSON.stringify(data.tradeJournal));
     if (callback) callback();
   }
 }
 
-// Initial load
-let tradeJournal = [];
-loadData((data) => {
-  if (guardEnabledEl) {
-    guardEnabledEl.checked = data.enabled !== false;
-    updateToggleLabelState(guardEnabledEl.checked);
-  }
-  renderRules(data.rules || DEFAULT_RULES);
+function hydrateAll() {
+  loadData((data) => {
+    applySessionLockUI(data.sessionLockUntil);
+    if (guardEnabledEl) {
+      guardEnabledEl.checked = data.enabled !== false;
+      updateToggleLabelState(guardEnabledEl.checked);
+    }
+    renderMood(data.currentMood);
+    renderStats(data);
+    updatePanicUI(data.panicLockUntil);
+    renderRules(data.rules || DEFAULT_RULES);
 
-  if (capitalInput) capitalInput.value = data.capital || 200000;
-  if (maxRiskInput) maxRiskInput.value = data.maxRiskPercent || 1.0;
-  if (cooldownSelect) cooldownSelect.value = String(data.cooldownMinutes !== undefined ? data.cooldownMinutes : 3);
-  if (maxTradesInput) maxTradesInput.value = data.maxTradesPerDay || 5;
+    if (capitalInput) capitalInput.value = data.capital || 200000;
+    if (maxRiskInput) maxRiskInput.value = data.maxRiskPercent || 1.0;
+    if (cooldownSelect) cooldownSelect.value = String(data.cooldownMinutes !== undefined ? data.cooldownMinutes : 3);
+    if (maxTradesInput) maxTradesInput.value = data.maxTradesPerDay || 5;
 
-  tradeJournal = data.tradeJournal || [];
-  renderJournal(tradeJournal);
+    renderJournal(data.tradeJournal || []);
+  });
+}
+
+hydrateAll();
+
+moodButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const mood = btn.dataset.mood;
+    renderMood(mood);
+    saveData({ currentMood: mood });
+    if (mood === "FOMO" || mood === "Revenge") {
+      showToast(`${mood} logged — 5s anti-tilt pause active on next order.`, true);
+    } else {
+      showToast(`Mindset checked in: ${mood}.`);
+    }
+  });
 });
 
-// Event Listeners
+if (panicLockBtn) {
+  panicLockBtn.addEventListener("click", () => {
+    const choice = panicDurationSelect ? panicDurationSelect.value : "60";
+    const until =
+      choice === "eod"
+        ? getNext330PmIstMs()
+        : Date.now() + (parseInt(choice, 10) || 60) * 60 * 1000;
+
+    saveData({ panicLockUntil: until }, () => {
+      updatePanicUI(until);
+      showToast("Self-Lockout active. New entries paused; exits remain open.", true);
+    });
+  });
+}
+
 guardEnabledEl.addEventListener("change", () => {
+  if (sessionLocked) {
+    guardEnabledEl.checked = true;
+    showToast("Locked until 3:30 PM IST under Session Commitment.", true);
+    return;
+  }
   saveData({ enabled: guardEnabledEl.checked });
   updateToggleLabelState(guardEnabledEl.checked);
-  showToast(guardEnabledEl.checked ? "TradeGuard active on trading sites." : "TradeGuard paused.", !guardEnabledEl.checked);
+  showToast(
+    guardEnabledEl.checked ? "TradeKavach+ active on trading terminals." : "TradeKavach+ paused.",
+    !guardEnabledEl.checked
+  );
 });
 
 capitalInput.addEventListener("change", () => {
@@ -200,7 +387,8 @@ cooldownSelect.addEventListener("change", () => {
 });
 
 maxTradesInput.addEventListener("change", () => {
-  saveData({ maxTradesPerDay: parseInt(maxTradesInput.value, 10) || 5 });
+  const val = Math.max(1, parseInt(maxTradesInput.value, 10) || 5);
+  saveData({ maxTradesPerDay: val }, () => hydrateAll());
   showToast("Daily trades cap updated.");
 });
 
@@ -210,7 +398,6 @@ function handleAddRule() {
 
   loadData((data) => {
     const current = data.rules || [];
-
     if (current.length >= 20) {
       showToast("Maximum of 20 active rules reached.", true);
       return;
@@ -233,7 +420,6 @@ newRuleInput.addEventListener("keydown", (e) => {
   }
 });
 
-// Export CSV
 exportCsvBtn.addEventListener("click", () => {
   loadData((data) => {
     const trades = data.tradeJournal || [];
@@ -242,8 +428,23 @@ exportCsvBtn.addEventListener("click", () => {
       return;
     }
 
-    const headers = ["ID", "Timestamp", "Date Time", "Broker", "Side", "Symbol", "Qty", "Price", "StopLoss", "RiskAmount", "StrategyTag", "MindsetTag"];
-    const rows = trades.map(t => [
+    const headers = [
+      "ID",
+      "Timestamp",
+      "Date Time",
+      "Broker",
+      "Side",
+      "Symbol",
+      "Qty",
+      "Price",
+      "StopLoss",
+      "RiskAmount",
+      "StrategyTag",
+      "MindsetTag",
+      "Outcome",
+      "PnL_INR"
+    ];
+    const rows = trades.map((t) => [
       t.id,
       t.timestamp,
       `"${t.timeString || new Date(t.timestamp).toLocaleString()}"`,
@@ -255,14 +456,17 @@ exportCsvBtn.addEventListener("click", () => {
       t.stopLoss || "",
       t.riskAmount || "",
       `"${t.strategyTag || ""}"`,
-      `"${t.mindsetTag || ""}"`
+      `"${t.mindsetTag || ""}"`,
+      t.outcome || "OPEN",
+      t.pnl || 0
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const csvContent =
+      "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `TradeGuard_Journal_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `TradeKavachPlus_Journal_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -270,26 +474,25 @@ exportCsvBtn.addEventListener("click", () => {
   });
 });
 
-// Clear Journal (2-click inline confirmation without native confirm())
 let confirmClearPending = false;
 clearJournalBtn.addEventListener("click", () => {
   if (!confirmClearPending) {
     confirmClearPending = true;
-    clearJournalBtn.textContent = "Confirm Clear?";
+    clearJournalBtn.textContent = "Confirm?";
     if (confirmClearTimer) clearTimeout(confirmClearTimer);
     confirmClearTimer = setTimeout(() => {
       confirmClearPending = false;
-      clearJournalBtn.textContent = "Clear Log";
+      clearJournalBtn.textContent = "Clear";
     }, 3000);
     return;
   }
 
   confirmClearPending = false;
-  clearJournalBtn.textContent = "Clear Log";
+  clearJournalBtn.textContent = "Clear";
   if (confirmClearTimer) clearTimeout(confirmClearTimer);
   saveData({ tradeJournal: [] }, () => {
-    tradeJournal = [];
     renderJournal([]);
+    hydrateAll();
     showToast("Local trade log cleared.");
   });
 });

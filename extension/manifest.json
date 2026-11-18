@@ -1,12 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "TradeGuard — Pre-Trade Discipline Checklist",
-  "version": "1.2.3",
-  "description": "Zero-API pre-trade checklist & 1% risk gatekeeper that prevents impulse orders on supported web trading terminals.",
+  "name": "TradeKavach+ — Pre-Trade Discipline Checklist",
+  "version": "1.3.0",
+  "description": "Zero-API pre-trade checklist, 1% risk guard, and panic lockout built for web trading terminals.",
   "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "TradeGuard Rules"
+    "default_title": "TradeKavach+ Rules & Panic Lock"
   },
   "content_scripts": [
     {
