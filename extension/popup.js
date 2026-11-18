@@ -44,6 +44,14 @@ const openOptionsBtn = document.getElementById("openOptionsBtn");
 const openWelcomeBtn = document.getElementById("openWelcomeBtn");
 const openMoreSettingsBtn = document.getElementById("openMoreSettingsBtn");
 const openFullJournalBtn = document.getElementById("openFullJournalBtn");
+const aboutVersionLabel = document.getElementById("aboutVersionLabel");
+
+if (aboutVersionLabel && typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest) {
+  try {
+    const mf = chrome.runtime.getManifest();
+    if (mf && mf.version) aboutVersionLabel.textContent = "Version " + mf.version;
+  } catch (_) {}
+}
 
 let toastTimer = null;
 let confirmClearTimer = null;

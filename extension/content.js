@@ -255,7 +255,7 @@
 
     pill.innerHTML = `
       <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981;"></span>
-      <span>TradeKavach+ v1.3</span>
+      <span>TradeKavach+</span>
     `;
 
     pill.title = "Click to view TradeKavach+ Guide & Shortcuts";

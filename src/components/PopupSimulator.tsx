@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Trash2, RotateCcw, HardDrive, Download, Clock, Sliders, BookOpen } from 'lucide-react';
+import { Shield, Trash2, RotateCcw, HardDrive, Download, Clock, Sliders } from 'lucide-react';
 import { TradeJournalEntry } from '../types';
 
 interface PopupSimulatorProps {
@@ -37,7 +37,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
   tradeJournal,
   onClearJournal
 }) => {
-  const [activeTab, setActiveTab] = useState<'rules' | 'risk' | 'journal' | 'guide'>('rules');
+  const [activeTab, setActiveTab] = useState<'rules' | 'risk' | 'journal' | 'about'>('rules');
   const [newRuleText, setNewRuleText] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -135,10 +135,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
           <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-sky-400" />
-              <h2 className="text-sm font-bold text-sky-400 m-0">TradeKavach+ v1.3</h2>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border bg-emerald-500/15 text-emerald-400 border-emerald-500/35">
-                All Free
-              </span>
+              <h2 className="text-sm font-bold text-sky-400 m-0">TradeKavach+</h2>
             </div>
 
             <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 cursor-pointer select-none">
@@ -185,12 +182,12 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('guide')}
+              onClick={() => setActiveTab('about')}
               className={`flex-1 py-1 px-1.5 rounded text-[11px] font-semibold transition-all ${
-                activeTab === 'guide' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+                activeTab === 'about' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Guide ℹ️
+              About
             </button>
           </div>
 
@@ -386,16 +383,19 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
             </div>
           )}
 
-          {/* Tab 4: Guide & Help */}
-          {activeTab === 'guide' && (
+          {/* Tab 4: About & Guide */}
+          {activeTab === 'about' && (
             <div className="space-y-2 text-xs max-h-[220px] overflow-y-auto pr-1">
               <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
-                <div className="font-bold text-sky-400 mb-1 flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>How It Intercepts Orders</span>
+                <div className="flex items-center justify-between font-bold text-sky-400 mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>TradeKavach+</span>
+                  </span>
+                  <span className="font-mono text-[10.5px] text-slate-300">Version 1.3.0</span>
                 </div>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Catches clicks on Dhan, Kite, and TradingView using browser capture (<code className="font-mono text-sky-300">useCapture: true</code>). The order is paused until your checklist rules are verified.
+                  Zero-API pre-trade behavioral gatekeeper for web trading terminals. Catches clicks at capture level (<code className="font-mono text-sky-300">useCapture: true</code>) before broker dispatch.
                 </p>
               </div>
 
@@ -405,7 +405,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
                   <span>Live 1% Risk Sizing</span>
                 </div>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Enter your intended Stop-Loss. TradeGuard calculates <code className="font-mono text-sky-300">Risk = |Price - SL| * Qty</code> and compares it to your Capital to display a live Safe/Danger badge.
+                  Enter your Stop-Loss. TradeKavach+ computes <code className="font-mono text-sky-300">Risk = |Price - SL| × Qty</code> and checks it against your Capital.
                 </p>
               </div>
 
@@ -415,17 +415,7 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
                   <span>Anti-Revenge Cooldown</span>
                 </div>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Exiting a position triggers a configurable cooling-off timer (e.g. 3 min) with a breathing guide to prevent emotional tilt re-entries.
-                </p>
-              </div>
-
-              <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
-                <div className="font-bold text-purple-400 mb-1 flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Strategy &amp; Mindset Tags</span>
-                </div>
-                <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Tag setups (<code className="font-mono text-purple-300">Breakout</code>, <code className="font-mono text-purple-300">Pullback</code>) and mindset (<code className="font-mono text-purple-300">Calm 🧘</code>, <code className="font-mono text-purple-300">FOMO 🚀</code>) before submitting.
+                  Exiting a position starts a cooling-off timer to prevent emotional tilt re-entries.
                 </p>
               </div>
 
@@ -442,10 +432,10 @@ export const PopupSimulator: React.FC<PopupSimulatorProps> = ({
 
               <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-2.5">
                 <div className="font-bold text-sky-400 mb-1 flex items-center gap-1.5">
-                  <span>🔒 Trading-Sites Only &amp; Zero Lag</span>
+                  <span>🔒 Privacy &amp; Full-Tab Features</span>
                 </div>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Installed ZIP also includes <strong className="text-sky-300">Welcome Tour</strong>, full-tab <strong className="text-sky-300">Analytics Dashboard</strong>, single-screen <strong className="text-sky-300">Settings</strong>, <strong className="text-sky-300">Panic Lockout</strong>, and <strong className="text-sky-300">9:15–9:30 AM IST</strong> opening volatility guard — with zero chart lag (<code className="font-mono text-sky-300">&lt;0.002ms</code>).
+                  Installed ZIP includes <strong className="text-sky-300">Welcome Tour</strong>, full-tab <strong className="text-sky-300">Analytics Dashboard</strong>, single-screen <strong className="text-sky-300">Settings</strong>, <strong className="text-sky-300">Panic Lockout</strong>, and <strong className="text-sky-300">9:15–9:30 AM IST</strong> opening guard.
                 </p>
               </div>
             </div>
